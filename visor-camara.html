@@ -3,263 +3,1017 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Visor DCS-5030L</title>
+<title>DCS-5030L Viewer</title>
 <style>
-  :root { --bg:#16181c; --panel:#22252b; --btn:#2f333b; --btnh:#3d424c; --txt:#e6e8eb; --mut:#9aa0a8; --acc:#ff7a1a; }
-  * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--txt); font:14px/1.4 system-ui,Segoe UI,sans-serif; }
-  header { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 16px; background:var(--panel); }
-  header h1 { font-size:16px; margin:0 12px 0 0; }
-  header input { background:var(--bg); color:var(--txt); border:1px solid #444; border-radius:6px; padding:5px 8px; width:170px; }
-  button, select { background:var(--btn); color:var(--txt); border:1px solid #444; border-radius:6px; padding:6px 10px; cursor:pointer; font:inherit; }
-  button:hover { background:var(--btnh); }
-  main { display:flex; flex-wrap:wrap; gap:16px; padding:16px; }
-  .video { flex:1 1 640px; min-width:0; background:#000; border-radius:8px; overflow:hidden; position:relative; aspect-ratio:16/9; }
-  .video img { width:100%; height:100%; object-fit:contain; display:block; }
-  .video .msg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:20px; color:var(--mut); }
-  aside { flex:0 0 240px; display:flex; flex-direction:column; gap:14px; }
-  .card { background:var(--panel); border-radius:8px; padding:12px; }
-  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); margin:0 0 10px; }
-  .pad { display:grid; grid-template-columns:repeat(3,56px); grid-template-rows:repeat(3,56px); gap:6px; justify-content:center; }
-  .pad button { font-size:20px; padding:0; }
-  .pad .home { color:var(--acc); }
-  .row { display:flex; gap:8px; align-items:center; margin-top:8px; }
-  .row label { flex:1; color:var(--mut); }
-  #status { font-size:12px; color:var(--mut); min-height:1.4em; }
-  .hint { font-size:12px; color:var(--mut); }
-  header input, aside input:not([type]) { background:var(--bg); color:var(--txt); border:1px solid #444; border-radius:6px; padding:6px 8px; font:inherit; }
-  .presets { display:flex; flex-direction:column; gap:6px; }
-  .preset { display:flex; gap:6px; }
-  .preset .go { flex:1; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .preset .del { padding:6px 9px; color:#e66; }
-  .switch { position:relative; width:44px; height:24px; flex:0 0 44px; }
-  .switch input { opacity:0; width:0; height:0; }
-  .slider { position:absolute; inset:0; background:#555; border-radius:24px; cursor:pointer; transition:.2s; }
-  .slider::before { content:""; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
-  .switch input:checked + .slider { background:var(--acc); }
-  .switch input:checked + .slider::before { transform:translateX(20px); }
-  @media (max-width:700px) { aside { flex:1 1 100%; } }
+:root {
+  --bg: #0f1115; --panel: #181b21; --panel2: #1f232b; --line: #2b3039; --btn: #262b34; --btnh: #313742;
+  --txt: #e7e9ee; --mut: #9097a3; --acc: #ff7a1a; --acc2: #ffb36b; --ok: #3ecf8e; --warn: #f5b942; --err: #ff5d5d;
+  --shadow: 0 6px 24px rgba(0,0,0,.35); --r: 10px;
+}
+@media (prefers-color-scheme: light) {
+  :root { --bg: #eef0f4; --panel: #ffffff; --panel2: #f5f6f9; --line: #dde1e8; --btn: #eceef3; --btnh: #e1e4eb;
+    --txt: #1b1e24; --mut: #646c78; --shadow: 0 6px 24px rgba(20,30,50,.12); }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--bg); color: var(--txt); font: 14px/1.45 system-ui, "Segoe UI", Roboto, sans-serif; display: flex; flex-direction: column; }
+button, select, input { font: inherit; color: inherit; }
+button { background: var(--btn); border: 1px solid var(--line); border-radius: 8px; padding: 6px 11px; cursor: pointer; transition: background .15s, border-color .15s; }
+button:hover:not(:disabled) { background: var(--btnh); }
+button:disabled { opacity: .5; cursor: default; }
+button.primary { background: var(--acc); border-color: var(--acc); color: #fff; }
+button.primary:hover:not(:disabled) { background: #ff8c3a; }
+button.danger { color: var(--err); }
+select, input[type=text], input[type=number] { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; min-width: 0; }
+input[type=range] { accent-color: var(--acc); }
+
+/* ── Cabecera ── */
+header { display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 650; font-size: 15px; }
+.brand .logo { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(135deg, var(--acc), #ff4d4d); display: grid; place-items: center; color: #fff; font-size: 15px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; background: var(--panel2); border: 1px solid var(--line); font-size: 12.5px; color: var(--mut); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--mut); }
+.dot.ok { background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); }
+.dot.warn { background: var(--warn); } .dot.err { background: var(--err); }
+header .spacer { flex: 1; }
+
+/* ── Disposición ── */
+main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; padding: 16px; min-height: 0; }
+@media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+
+/* ── Vídeo ── */
+.stage { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.video { position: relative; background: #000; border-radius: var(--r); overflow: hidden; aspect-ratio: 16/9; box-shadow: var(--shadow); user-select: none; }
+.video:fullscreen { aspect-ratio: auto; border-radius: 0; }
+.video img#vid { width: 100%; height: 100%; object-fit: contain; display: block; transform-origin: 50% 50%; transition: transform .25s ease; cursor: crosshair; }
+.video .msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; color: #c9ced6; background: rgba(0,0,0,.55); }
+.video .msg.hidden { display: none; }
+.cross { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; pointer-events: none; opacity: .55; }
+.cross::before, .cross::after { content: ""; position: absolute; background: #fff; box-shadow: 0 0 2px #000; }
+.cross::before { left: 50%; top: 0; bottom: 0; width: 1px; } .cross::after { top: 50%; left: 0; right: 0; height: 1px; }
+.ripple { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; border: 2px solid var(--acc); border-radius: 50%; pointer-events: none; animation: rip .7s ease-out forwards; }
+@keyframes rip { from { transform: scale(.3); opacity: 1; } to { transform: scale(1.4); opacity: 0; } }
+.hud { position: absolute; left: 0; right: 0; bottom: 0; display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: linear-gradient(transparent, rgba(0,0,0,.7)); opacity: 0; transition: opacity .2s; color: #fff; }
+.video:hover .hud, .hud:focus-within, .video.touch .hud { opacity: 1; }
+.hud button { background: rgba(255,255,255,.12); border-color: rgba(255,255,255,.18); color: #fff; padding: 5px 10px; }
+.hud button:hover { background: rgba(255,255,255,.22) !important; }
+.hud button.on { background: var(--acc); border-color: var(--acc); }
+.hud .grow { flex: 1; }
+.hud input[type=range] { width: 90px; }
+.tag { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; pointer-events: none; }
+.tag span { background: rgba(0,0,0,.55); color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 12px; }
+.hint { font-size: 12.5px; color: var(--mut); }
+
+/* ── Panel lateral ── */
+aside { display: flex; flex-direction: column; min-height: 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); box-shadow: var(--shadow); overflow: hidden; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tabs button { flex: 1; border: 0; border-radius: 0; background: transparent; padding: 11px 6px; color: var(--mut); border-bottom: 2px solid transparent; }
+.tabs button.active { color: var(--txt); border-bottom-color: var(--acc); }
+.tabpane { display: none; padding: 14px; overflow: auto; flex: 1; }
+.tabpane.active { display: flex; flex-direction: column; gap: 16px; }
+h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--mut); font-weight: 600; display: flex; align-items: center; gap: 8px; }
+h3 .r { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 400; }
+
+/* Mapa */
+.mapwrap { position: relative; border-radius: 8px; overflow: hidden; background: var(--panel2); border: 1px solid var(--line); }
+#map { display: block; width: 100%; cursor: crosshair; touch-action: none; }
+.mapbar { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
+.progress { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; margin-top: 8px; display: none; }
+.progress.on { display: block; }
+.progress div { height: 100%; width: 0; background: var(--acc); transition: width .3s; }
+
+/* Mando */
+.padrow { display: flex; gap: 14px; align-items: center; }
+.pad { display: grid; grid-template-columns: repeat(3, 46px); grid-template-rows: repeat(3, 46px); gap: 5px; }
+.pad button { padding: 0; font-size: 18px; }
+.pad .home { color: var(--acc); }
+.padside { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.padside label { font-size: 12.5px; color: var(--mut); }
+.pos { font-variant-numeric: tabular-nums; }
+
+/* Posiciones */
+.presets { display: flex; flex-direction: column; gap: 6px; }
+.preset { display: flex; gap: 6px; align-items: center; }
+.preset .go { flex: 1; text-align: left; display: flex; gap: 8px; align-items: center; overflow: hidden; }
+.preset .go b { width: 18px; height: 18px; border-radius: 5px; background: var(--acc); color: #fff; font-size: 11px; display: grid; place-items: center; flex: none; }
+.preset .go span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.preset .del { padding: 6px 9px; }
+.row { display: flex; gap: 8px; align-items: center; }
+.row > input[type=text] { flex: 1; }
+
+/* Ajustes */
+details.sec { border: 1px solid var(--line); border-radius: 9px; background: var(--panel2); }
+details.sec > summary { list-style: none; cursor: pointer; padding: 10px 12px; display: flex; align-items: center; gap: 10px; font-weight: 600; }
+details.sec > summary::-webkit-details-marker { display: none; }
+details.sec > summary::after { content: "›"; margin-left: auto; color: var(--mut); transition: transform .2s; font-size: 18px; line-height: 1; }
+details.sec[open] > summary::after { transform: rotate(90deg); }
+details.sec > summary .ico { width: 22px; text-align: center; }
+.secbody { padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 11px; }
+.field { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+.field > label { color: var(--txt); }
+.field .sub { grid-column: 1 / -1; font-size: 12px; color: var(--mut); margin-top: -6px; }
+.field.wide { grid-template-columns: 1fr; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; padding: 5px 10px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button.on { background: var(--acc); color: #fff; }
+.level { display: flex; align-items: center; gap: 8px; }
+.level output { width: 26px; text-align: right; font-variant-numeric: tabular-nums; color: var(--mut); }
+.switch { position: relative; width: 40px; height: 22px; flex: none; }
+.switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+.switch span { position: absolute; inset: 0; background: var(--line); border-radius: 22px; cursor: pointer; transition: .2s; }
+.switch span::before { content: ""; position: absolute; width: 16px; height: 16px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+.switch input:checked + span { background: var(--acc); }
+.switch input:checked + span::before { transform: translateX(18px); }
+.switch input:focus-visible + span { outline: 2px solid var(--acc2); outline-offset: 2px; }
+.secfoot { display: flex; gap: 8px; align-items: center; justify-content: flex-end; }
+.secfoot .st { margin-right: auto; font-size: 12.5px; color: var(--mut); }
+.note { font-size: 12.5px; color: var(--mut); background: var(--panel); border: 1px dashed var(--line); border-radius: 8px; padding: 8px 10px; }
+.note.warn { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 50%, transparent); }
+
+/* Info */
+dl.info { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; margin: 0; }
+dl.info dt { color: var(--mut); } dl.info dd { margin: 0; font-variant-numeric: tabular-nums; word-break: break-word; }
+
+/* Aviso flotante */
+#toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(20px); background: var(--panel); border: 1px solid var(--line); box-shadow: var(--shadow); padding: 9px 16px; border-radius: 10px; opacity: 0; transition: .25s; pointer-events: none; z-index: 10; max-width: 90vw; }
+#toast.on { opacity: 1; transform: translateX(-50%); }
+#toast.ok { border-color: var(--ok); } #toast.err { border-color: var(--err); }
+kbd { font: 11px ui-monospace, monospace; background: var(--panel2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; }
 </style>
 </head>
 <body>
 <header>
-  <h1>📷 DCS-5030L</h1>
-  <button id="reload">Recargar vídeo</button>
-  <button id="full">Pantalla completa</button>
+  <div class="brand"><div class="logo">◉</div><span id="camName">DCS-5030L</span></div>
+  <span class="pill" title="Estado de la conexión con la cámara"><span class="dot" id="connDot"></span><span id="connTxt">Conectando…</span></span>
+  <span class="pill" id="clockPill" title="Hora de la cámara">🕒 <span id="clock">—</span></span>
+  <span class="spacer"></span>
+  <span class="hint" style="display:none" id="keysHint"><kbd>←↑→↓</kbd> mover · <kbd>1-9</kbd> posiciones · <kbd>S</kbd> foto · <kbd>F</kbd> pantalla completa · <kbd>M</kbd> sonido</span>
 </header>
+
 <main>
-  <div class="video" id="vbox">
-    <img id="vid" alt="">
-    <div class="msg" id="vmsg">Cargando vídeo…</div>
-  </div>
+  <section class="stage">
+    <div class="video" id="vbox">
+      <img id="vid" alt="Vídeo en directo de la cámara">
+      <div class="cross"></div>
+      <div class="tag"><span id="resTag">—</span><span id="zoomTag" hidden></span></div>
+      <div class="msg" id="vmsg">Conectando con la cámara…</div>
+      <div class="hud">
+        <button id="bAudio" title="Sonido (M)">🔇 Sonido</button>
+        <input type="range" id="vol" min="0" max="3" step="0.1" value="1" title="Volumen">
+        <span class="grow"></span>
+        <button data-zoom="1" class="on" title="Zoom digital">1×</button><button data-zoom="2">2×</button><button data-zoom="4">4×</button>
+        <button id="bSnap" title="Guardar instantánea (S)">📷</button>
+        <button id="bFull" title="Pantalla completa (F)">⛶</button>
+      </div>
+    </div>
+    <div class="hint">Haz clic en el vídeo para centrar la cámara en ese punto. <span id="calHint"></span></div>
+  </section>
+
   <aside>
-    <div class="card">
-      <h2>Movimiento</h2>
-      <div class="pad">
-        <button data-m="0">↖</button><button data-m="1">↑</button><button data-m="2">↗</button>
-        <button data-m="3">←</button><button data-m="4" class="home" title="Posición inicial">⌂</button><button data-m="5">→</button>
-        <button data-m="6">↙</button><button data-m="7">↓</button><button data-m="8">↘</button>
-      </div>
-      <div class="row"><label for="step">Paso (grados)</label>
-        <select id="step"><option>1</option><option>3</option><option selected>5</option><option>10</option><option>20</option><option>45</option></select></div>
-      <div class="hint">También con las flechas del teclado (Inicio = posición inicial).</div>
+    <div class="tabs" role="tablist">
+      <button class="active" data-tab="control">🕹️ Control</button>
+      <button data-tab="ajustes">⚙️ Ajustes</button>
+      <button data-tab="info">ℹ️ Info</button>
     </div>
-    <div class="card">
-      <h2>Posiciones guardadas</h2>
-      <div id="presets" class="presets"><div class="hint">Cargando…</div></div>
-      <div class="row">
-        <input id="pname" maxlength="20" placeholder="Nombre (p. ej. Patio)" style="flex:1;min-width:0">
-        <button id="psave" title="Guarda la posición actual con este nombre">Guardar</button>
+
+    <div class="tabpane active" id="tab-control">
+      <div>
+        <h3>Mapa <span class="r hint" id="mapHint"></span></h3>
+        <div class="mapwrap"><canvas id="map" height="160"></canvas></div>
+        <div class="progress" id="prog"><div></div></div>
+        <div class="mapbar">
+          <button id="bScan" title="La cámara recorre todo su giro haciendo fotos para componer una panorámica">🧭 Escanear panorámica</button>
+          <button id="bCal" title="Mide el campo de visión para apuntar con precisión">🎯 Calibrar</button>
+          <button id="bLim" title="Mide hasta dónde puede girar la cámara sin chocar con paredes o marcos">📏 Límites</button>
+          <span class="hint" id="scanTxt"></span>
+        </div>
       </div>
-      <div class="hint">Guarda donde está apuntando ahora la cámara. Posición actual: <span id="pos">—</span></div>
-    </div>
-    <div class="card">
-      <h2>Sonido</h2>
-      <div class="row">
-        <label class="switch"><input type="checkbox" id="audio"><span class="slider"></span></label>
-        <label for="audio" id="alabel" style="flex:1;color:var(--txt)">Desactivado</label>
+
+      <div>
+        <h3>Movimiento <span class="r hint pos" id="posTxt">—</span></h3>
+        <div class="padrow">
+          <div class="pad">
+            <button data-m="0">↖</button><button data-m="1">↑</button><button data-m="2">↗</button>
+            <button data-m="3">←</button><button data-m="4" class="home" title="Posición inicial">⌂</button><button data-m="5">→</button>
+            <button data-m="6">↙</button><button data-m="7">↓</button><button data-m="8">↘</button>
+          </div>
+          <div class="padside">
+            <label for="step">Paso</label>
+            <select id="step"><option value="1">1°</option><option value="3">3°</option><option value="5" selected>5°</option><option value="10">10°</option><option value="20">20°</option><option value="45">45°</option></select>
+            <span class="hint">También con las flechas del teclado.</span>
+          </div>
+        </div>
       </div>
-      <div class="row"><label for="vol">Volumen</label><input type="range" id="vol" min="0" max="3" step="0.1" value="1" style="flex:2"></div>
+
+      <div>
+        <h3>Posiciones guardadas</h3>
+        <div class="presets" id="presets"><span class="hint">Cargando…</span></div>
+        <div class="row" style="margin-top:8px">
+          <input type="text" id="pname" maxlength="20" placeholder="Nombre (p. ej. Patio)">
+          <button id="psave" class="primary">Guardar aquí</button>
+        </div>
+        <div class="hint" style="margin-top:6px">Se guardan en la propia cámara. Letras sin acentos, números, - y _.</div>
+      </div>
     </div>
-    <div class="card"><h2>Estado</h2><div id="status">—</div></div>
+
+    <div class="tabpane" id="tab-ajustes"></div>
+    <div class="tabpane" id="tab-info"><span class="hint">Cargando…</span></div>
   </aside>
 </main>
+<div id="toast"></div>
 
 <script>
 (() => {
 'use strict';
 const $ = id => document.getElementById(id);
-// El servidor local (servidor-camara.js) reenvía /cam/* a la cámara con las credenciales.
-const base = () => location.origin + '/cam';
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-// Algunas extensiones del navegador sustituyen window.fetch por su propia versión y rompen
-// los streams (p. ej. el audio). Usamos la fetch original de un iframe vacío propio.
+// ───────── Red ─────────
+// Algunas extensiones del navegador sustituyen window.fetch y rompen los streams (p. ej. el audio).
+// Usamos la fetch original de un iframe vacío propio.
 const netFetch = (() => {
   try {
-    const f = document.createElement('iframe');
-    f.style.display = 'none';
-    document.documentElement.appendChild(f);
+    const f = document.createElement('iframe'); f.style.display = 'none'; document.documentElement.appendChild(f);
     const nf = f.contentWindow.fetch;
-    if (typeof nf === 'function') return (url, opts) => nf.call(f.contentWindow, url, opts);
+    if (typeof nf === 'function') return (u, o) => nf.call(f.contentWindow, new URL(u, location.href).href, o);
   } catch {}
-  return (url, opts) => window.fetch(url, opts);
+  return (u, o) => window.fetch(u, o);
 })();
-async function safeFetch(url, opts) {
-  const r = await netFetch(url, opts);
-  if (!r) throw new Error('una extensión del navegador está bloqueando la petición; prueba en otro navegador o en una ventana privada');
+async function http(url, opts = {}) {
+  const r = await netFetch(url, { cache: 'no-store', ...opts });
+  if (!r) throw new Error('una extensión del navegador bloquea la petición');
   return r;
 }
-
-function status(t) { $('status').textContent = new Date().toLocaleTimeString() + ' · ' + t; }
-
-function loadVideo() {
-  $('vmsg').style.display = 'flex';
-  $('vmsg').textContent = 'Cargando vídeo…';
-  $('vid').src = base() + '/video/mjpg.cgi?t=' + Date.now();
+async function api(path, opts) {
+  const r = await http(path, opts);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || 'error ' + r.status);
+  return j;
 }
-$('vid').onload = () => { $('vmsg').style.display = 'none'; status('Vídeo conectado'); };
-$('vid').onerror = () => {
-  $('vmsg').style.display = 'flex';
-  $('vmsg').innerHTML = location.protocol === 'file:'
-    ? 'Abre el visor desde <b>http://localhost:8099</b> (con servidor-camara.js en marcha), no con doble clic.'
-    : 'No se pudo cargar el vídeo. Comprueba la ventana del servidor: si la contraseña es incorrecta, reinícialo con <b>--config</b>.';
-  status('Error de vídeo');
+const kv = t => Object.fromEntries(t.split(/\r?\n/).filter(l => l.includes('=')).map(l => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim()]));
+// Peticiones GET a la cámara (todas idempotentes: consultas, movimiento absoluto, posiciones).
+// La cámara a veces rechaza conexiones si está saturada: se reintenta hasta 3 veces.
+async function camGet(path) {
+  let last;
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await http('/cam' + path);
+      if (r.status < 500) return r;
+      last = new Error('la cámara respondió ' + r.status);
+    } catch (e) { last = e; }
+    await sleep(800 * (i + 1));
+  }
+  throw last;
+}
+async function cam(path) {
+  const r = await camGet(path);
+  const t = await r.text();
+  if (!r.ok) throw new Error(r.status === 401 ? 'sin permiso (¿usuario admin?)' : 'la cámara respondió ' + r.status);
+  return kv(t);
+}
+
+let toastT;
+function toast(msg, kind = '') {
+  const t = $('toast'); t.textContent = msg; t.className = 'on ' + kind;
+  clearTimeout(toastT); toastT = setTimeout(() => t.className = '', kind === 'err' ? 5000 : 2600);
+}
+function conn(state, txt) { $('connDot').className = 'dot ' + state; $('connTxt').textContent = txt; }
+
+// ───────── Estado ─────────
+const S = {
+  range: { pmin: 0, pmax: 336, tmin: 0, tmax: 106 },
+  pos: null,                 // {p, t}
+  safe: null,                // {pmin, pmax, tmin, tmax}: rango real sin obstáculos (medido)
+  presets: [],               // [{name, p, t}]
+  calib: null,               // {sx, sy, w, h}: desplazamiento de la imagen (fracción de ancho/alto) por unidad de pan/tilt
+  pano: null,                // {img, meta}
+  busy: false,               // escaneo/calibración en curso
 };
 
-async function send(path, params) {
-  try {
-    const r = await safeFetch(base() + path, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(params) });
-    const t = (await r.text()).trim().slice(0, 80);
-    if (!r.ok) status('La cámara respondió ' + r.status + (t ? ': ' + t : ''));
-    else if (t) status($('status').textContent.split(' · ').pop() + ' → ' + t);
-  } catch (e) { status('Error: ' + e.message); }
+// ───────── Vídeo ─────────
+const vid = $('vid');
+let zoom = 1, vidRetry;
+function loadVideo() {
+  clearTimeout(vidRetry);
+  $('vmsg').classList.remove('hidden'); $('vmsg').textContent = 'Conectando con la cámara…';
+  vid.src = '/cam/video/mjpg.cgi?t=' + Date.now();
 }
-
-const names = ['↖','↑','↗','←','inicio','→','↙','↓','↘'];
-function move(m) {
-  const s = $('step').value;
-  send('/pantiltcontrol.cgi', { PanSingleMoveDegree: s, TiltSingleMoveDegree: s, PanTiltSingleMove: m });
-  status('Mover ' + names[m] + (m == 4 ? '' : ' ' + s + '°'));
-  refreshPos(1500);
+vid.onload = () => {
+  $('vmsg').classList.add('hidden');
+  $('resTag').textContent = vid.naturalWidth + '×' + vid.naturalHeight;
+  conn('ok', 'En directo');
+};
+vid.onerror = () => {
+  if (location.protocol === 'file:') { $('vmsg').innerHTML = 'Abre el visor desde <b>http://localhost:8099</b> (con el servidor en marcha), no con doble clic.'; return; }
+  $('vmsg').classList.remove('hidden'); $('vmsg').textContent = 'Sin vídeo. Reintentando…';
+  conn('err', 'Sin conexión');
+  vidRetry = setTimeout(loadVideo, 4000);
+};
+function setZoom(z) {
+  zoom = z; vid.style.transform = `scale(${z})`;
+  document.querySelectorAll('[data-zoom]').forEach(b => b.classList.toggle('on', +b.dataset.zoom === z));
+  $('zoomTag').hidden = z === 1; $('zoomTag').textContent = 'Zoom ' + z + '×';
 }
+document.querySelectorAll('[data-zoom]').forEach(b => b.onclick = e => { e.stopPropagation(); setZoom(+b.dataset.zoom); });
+$('bFull').onclick = e => { e.stopPropagation(); document.fullscreenElement ? document.exitFullscreen() : $('vbox').requestFullscreen?.(); };
+if (matchMedia('(hover: none)').matches) $('vbox').classList.add('touch');
 
-// ---------- Posición actual ----------
-// La cámara responde en formato "clave=valor" por líneas.
-const parseInf = t => Object.fromEntries(t.split(/\r?\n/).filter(l => l.includes('=')).map(l => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim()]));
-async function cam(path) {
-  const r = await safeFetch(base() + path, { cache: 'no-store' });
-  const t = await r.text();
+// Coordenadas normalizadas (0..1) del punto pulsado dentro de la imagen real (sin bandas negras, con zoom).
+function videoPoint(ev) {
+  const r = vid.getBoundingClientRect();
+  const iw = vid.naturalWidth || 16, ih = vid.naturalHeight || 9;
+  const sc = Math.min(r.width / iw, r.height / ih);
+  const cw = iw * sc, ch = ih * sc, ox = r.left + (r.width - cw) / 2, oy = r.top + (r.height - ch) / 2;
+  return { x: (ev.clientX - ox) / cw, y: (ev.clientY - oy) / ch };
+}
+vid.addEventListener('click', async ev => {
+  const { x, y } = videoPoint(ev);
+  if (x < 0 || x > 1 || y < 0 || y > 1) return;
+  const box = $('vbox').getBoundingClientRect(), rp = document.createElement('div');
+  rp.className = 'ripple'; rp.style.left = (ev.clientX - box.left) + 'px'; rp.style.top = (ev.clientY - box.top) + 'px';
+  $('vbox').appendChild(rp); setTimeout(() => rp.remove(), 700);
+  if (S.busy) return toast('Espera a que termine la operación en curso');
+  if (!S.calib) {
+    toast('Primero calibro la cámara (unos segundos)…');
+    if (!await calibrate()) return;
+  }
+  if (!S.pos) await refreshPos();
+  const p = S.pos.p + (0.5 - x) / S.calib.sx, t = S.pos.t + (0.5 - y) / S.calib.sy;
+  moveAbs(p, t);
+});
+
+// Instantánea
+async function snapshotBlob() {
+  const r = await camGet('/image/jpeg.cgi?t=' + Date.now());
   if (!r.ok) throw new Error('la cámara respondió ' + r.status);
-  return parseInf(t);
+  return r.blob();
 }
-let posTimer;
-function refreshPos(delay = 0) {
-  clearTimeout(posTimer);
-  posTimer = setTimeout(async () => {
-    try { const p = await cam('/config/ptz_pos.cgi'); $('pos').textContent = `${p.p}, ${p.t}`; } catch { $('pos').textContent = '?'; }
-  }, delay);
-}
+$('bSnap').onclick = async e => {
+  e?.stopPropagation();
+  try {
+    const b = await snapshotBlob(), a = document.createElement('a');
+    const d = new Date(), pad = n => String(n).padStart(2, '0');
+    a.href = URL.createObjectURL(b);
+    a.download = `dcs5030l-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.jpg`;
+    a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast('📷 Instantánea guardada', 'ok');
+  } catch (err) { toast('No se pudo hacer la foto: ' + err.message, 'err'); }
+};
 
-// ---------- Posiciones guardadas (se almacenan en la propia cámara) ----------
+// ───────── Movimiento ─────────
+async function refreshPos() {
+  try { const d = await cam('/config/ptz_pos.cgi'); S.pos = { p: +d.p, t: +d.t }; $('posTxt').textContent = `pan ${d.p} · tilt ${d.t}`; drawMap(); }
+  catch (e) { $('posTxt').textContent = '—'; }
+}
+async function move(m) {
+  const s = $('step').value;
+  // Con calibración: movimiento absoluto dentro del rango seguro (no choca con obstáculos) y con la
+  // dirección deducida de la imagen (← siempre mueve la vista a la izquierda, aunque la cámara esté boca abajo).
+  if (S.calib && m !== 4) {
+    if (!S.pos) await refreshPos();
+    const dx = [-1, 0, 1, -1, 0, 1, -1, 0, 1][m], dy = [-1, -1, -1, 0, 0, 0, 1, 1, 1][m];
+    // Ver más a la izquierda = el contenido se desplaza a la derecha (+x): Δpan = −dx·signo(sx)·paso
+    return moveAbs(S.pos.p - dx * Math.sign(S.calib.sx) * s, S.pos.t - dy * Math.sign(S.calib.sy) * s);
+  }
+  try {
+    const r = await http('/cam/pantiltcontrol.cgi', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ PanSingleMoveDegree: s, TiltSingleMoveDegree: s, PanTiltSingleMove: m }) });
+    if (!r.ok) throw new Error(r.status === 401 ? 'sin permiso: hace falta el usuario admin' : 'la cámara respondió ' + r.status);
+  } catch (e) { return toast('No se pudo mover: ' + e.message, 'err'); }
+  setTimeout(refreshPos, 1200);
+}
+// Tiempo mínimo que tarda el último movimiento: si se envía otro antes de que termine, el firmware
+// (que ya dio por buena la posición destino) pierde la cuenta de los pasos y la cámara se descoloca.
+let moveMs = 0;
+async function moveAbs(p, t, unsafe = false) {
+  const R = unsafe ? S.range : (S.safe || S.range);   // nunca salir del rango seguro medido
+  p = Math.round(clamp(p, R.pmin, R.pmax)); t = Math.round(clamp(t, R.tmin, R.tmax));
+  moveMs = S.pos ? 600 + (Math.abs(p - S.pos.p) + Math.abs(t - S.pos.t)) * 45 : 8000;
+  try { const d = await cam(`/config/ptz_move.cgi?p=${p}&t=${t}`); S.pos = { p: +d.p, t: +d.t }; $('posTxt').textContent = `pan ${d.p} · tilt ${d.t}`; drawMap(); }
+  catch (e) { toast('No se pudo mover: ' + e.message, 'err'); }
+}
+document.querySelectorAll('.pad button').forEach(b => b.onclick = () => move(+b.dataset.m));
+
+// ───────── Posiciones guardadas ─────────
 async function loadPresets() {
   const box = $('presets');
   try {
     const d = await cam('/config/ptz_preset_list.cgi');
-    const list = (d.presets || '').split(',').map(s => s.trim()).filter(Boolean);
+    S.presets = (d.presets || '').split(',').map(s => s.trim()).filter(Boolean).map(name => {
+      const [p, t] = (d[name] || '').split(',').map(Number); return { name, p, t };
+    });
     box.innerHTML = '';
-    if (!list.length) { box.innerHTML = '<div class="hint">No hay posiciones guardadas.</div>'; return; }
-    for (const name of list) {
+    if (!S.presets.length) box.innerHTML = '<span class="hint">Aún no hay posiciones guardadas.</span>';
+    S.presets.forEach((pr, i) => {
       const row = document.createElement('div'); row.className = 'preset';
-      const go = document.createElement('button'); go.className = 'go'; go.textContent = name; go.title = 'Ir a ' + name + (d[name] ? ' (' + d[name] + ')' : '');
-      go.onclick = () => presetAct(name, 'go');
-      const del = document.createElement('button'); del.className = 'del'; del.textContent = '✕'; del.title = 'Borrar ' + name;
-      del.onclick = () => { if (confirm(`¿Borrar la posición "${name}"?`)) presetAct(name, 'del'); };
+      const go = document.createElement('button'); go.className = 'go';
+      go.innerHTML = `<b>${i < 9 ? i + 1 : '·'}</b><span></span>`; go.querySelector('span').textContent = pr.name;
+      go.title = `Ir a ${pr.name} (pan ${pr.p}, tilt ${pr.t})`;
+      go.onclick = () => presetAct(pr.name, 'go');
+      const del = document.createElement('button'); del.className = 'del danger'; del.textContent = '✕'; del.title = 'Borrar ' + pr.name;
+      del.onclick = () => { if (confirm(`¿Borrar la posición "${pr.name}"?`)) presetAct(pr.name, 'del'); };
       row.append(go, del); box.appendChild(row);
-    }
-  } catch (e) { box.innerHTML = '<div class="hint">No se pudieron leer: ' + e.message + '</div>'; }
+    });
+    drawMap();
+  } catch (e) { box.innerHTML = ''; box.append(Object.assign(document.createElement('span'), { className: 'hint', textContent: 'No se pudieron leer: ' + e.message })); }
 }
 async function presetAct(name, act) {
   try {
     await cam(`/config/ptz_preset.cgi?name=${encodeURIComponent(name)}&act=${act}`);
-    status({ go: 'Yendo a ', add: 'Guardada ', del: 'Borrada ' }[act] + '"' + name + '"');
-    if (act === 'go') refreshPos(2500); else loadPresets();
-  } catch (e) { status('Error con "' + name + '": ' + e.message); }
+    toast({ go: '➜ ' + name, add: '📍 Guardada "' + name + '"', del: 'Borrada "' + name + '"' }[act], act === 'go' ? '' : 'ok');
+    if (act === 'go') { const pr = S.presets.find(x => x.name === name); if (pr) { S.pos = { p: pr.p, t: pr.t }; drawMap(); } setTimeout(refreshPos, 1500); }
+    else loadPresets();
+  } catch (e) { toast(`Error con "${name}": ${e.message}`, 'err'); }
 }
 $('psave').onclick = () => {
   const name = $('pname').value.trim();
-  if (!/^[A-Za-z0-9_-]{1,20}$/.test(name)) { status('Nombre no válido: usa letras sin acentos, números, - o _ (sin espacios)'); $('pname').focus(); return; }
-  const exists = [...document.querySelectorAll('.preset .go')].some(b => b.textContent === name);
-  if (exists && !confirm(`"${name}" ya existe. ¿Sustituirla por la posición actual?`)) return;
-  presetAct(name, 'add');
-  $('pname').value = '';
+  if (!/^[A-Za-z0-9_-]{1,20}$/.test(name)) { toast('Nombre no válido: letras sin acentos, números, - o _ (sin espacios)', 'err'); return $('pname').focus(); }
+  if (S.presets.some(p => p.name === name) && !confirm(`"${name}" ya existe. ¿Sustituirla por la posición actual?`)) return;
+  presetAct(name, 'add'); $('pname').value = '';
 };
 $('pname').addEventListener('keydown', e => { if (e.key === 'Enter') $('psave').click(); });
 
-// ---------- Sonido: la cámara emite WAV PCM continuo (mono, 16 bits, 11025 Hz) ----------
+// ───────── Análisis de imagen (calibración y escaneo) ─────────
+async function grab(w = 192) {
+  const bmp = await createImageBitmap(await snapshotBlob());
+  const h = Math.round(w * bmp.height / bmp.width);
+  const c = new OffscreenCanvas(w, h), x = c.getContext('2d');
+  x.drawImage(bmp, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data, g = new Float32Array(w * h);
+  let mean = 0;
+  for (let i = 0; i < g.length; i++) { g[i] = d[i * 4] * .299 + d[i * 4 + 1] * .587 + d[i * 4 + 2] * .114; mean += g[i]; }
+  mean /= g.length; for (let i = 0; i < g.length; i++) g[i] -= mean;
+  return { g, w, h, bmp };
+}
+// Desplazamiento (dx, dy en píxeles) que mejor alinea b con a: busca el mínimo de diferencia media absoluta.
+function shift(a, b, maxX, maxY) {
+  const { w, h } = a; let best = { err: Infinity, dx: 0, dy: 0 };
+  for (let dy = -maxY; dy <= maxY; dy++) for (let dx = -maxX; dx <= maxX; dx++) {
+    const x0 = Math.max(0, dx), x1 = Math.min(w, w + dx), y0 = Math.max(0, dy), y1 = Math.min(h, h + dy);
+    if ((x1 - x0) * (y1 - y0) < w * h * 0.3) continue;   // solape mínimo del 30 %
+    let s = 0, n = 0;
+    for (let y = y0; y < y1; y += 2) { const ra = y * w, rb = (y - dy) * w - dx; for (let x = x0; x < x1; x += 2) { s += Math.abs(a.g[ra + x] - b.g[rb + x]); n++; } }
+    const e = s / n; if (e < best.err) best = { err: e, dx, dy };
+  }
+  return best;
+}
+let snapDims;
+async function snapshotSize() {
+  if (!snapDims) { const b = await createImageBitmap(await snapshotBlob()); snapDims = { w: b.width, h: b.height }; }
+  return snapDims;
+}
+// Espera a que la imagen deje de cambiar (la cámara informa de la posición final antes de llegar).
+async function settle(maxMs = 2500) {
+  const min = Math.max(600, moveMs); moveMs = 0;
+  await sleep(min);                                   // espera mínima según la distancia recorrida
+  const t0 = Date.now();
+  let prev = await grab(64), stable = 0;
+  while (Date.now() - t0 < maxMs) {
+    await sleep(250);
+    const cur = await grab(64);
+    let s = 0; for (let i = 0; i < cur.g.length; i++) s += Math.abs(cur.g[i] - prev.g[i]);
+    if (s / cur.g.length < 4.5 && ++stable >= 2) return cur;   // dos comparaciones estables seguidas
+    if (s / cur.g.length >= 4.5) stable = 0;
+    prev = cur;
+  }
+  return prev;
+}
+
+async function calibrate() {
+  if (S.busy) return false;
+  S.busy = true; setBusyUi(true, 'Calibrando…');
+  try {
+    await refreshPos();
+    const { p, t } = S.pos, R = S.range;
+    // Dos giros distintos por eje: el resultado solo se acepta si ambas medidas coinciden.
+    const dP = [10, 20].map(d => p + 20 <= R.pmax ? d : -d), dT = [8, 16].map(d => t + 16 <= R.tmax ? d : -d);
+    await settle(); const a = await grab(256);
+    const measure = async (np, nt, d, axis) => {
+      await moveAbs(np, nt); await settle(); const b = await grab(256);
+      const s = axis === 'x' ? shift(a, b, Math.round(a.w * .45), 6) : shift(a, b, 6, Math.round(a.h * .45));
+      // b está desplazado (dx, dy) respecto a a: el contenido se movió −dx píxeles al girar d unidades.
+      return { k: axis === 'x' ? -s.dx / a.w / d : -s.dy / a.h / d, px: Math.abs(axis === 'x' ? s.dx : s.dy), err: s.err };
+    };
+    $('scanTxt').textContent = 'Calibrando giro…';
+    const x1 = await measure(p + dP[0], t, dP[0], 'x'), x2 = await measure(p + dP[1], t, dP[1], 'x');
+    $('scanTxt').textContent = 'Calibrando inclinación…';
+    const y1 = await measure(p, t + dT[0], dT[0], 'y'), y2 = await measure(p, t + dT[1], dT[1], 'y');
+    await moveAbs(p, t);
+    const agree = (m, n) => m.px >= 3 && n.px >= 3 && Math.sign(m.k) === Math.sign(n.k) && Math.abs(m.k - n.k) / Math.max(Math.abs(m.k), Math.abs(n.k)) < 0.2;
+    if (!agree(x1, x2) || !agree(y1, y2)) throw new Error('las medidas no coinciden (poca textura, poca luz o algo moviéndose en la imagen). Prueba apuntando a una zona con más detalle');
+    const sx = (x1.k + x2.k) / 2, sy = (y1.k + y2.k) / 2;
+    S.calib = { sx, sy, w: (await snapshotSize()).w, h: (await snapshotSize()).h, at: new Date().toISOString() };
+    await saveCalib();
+    calHint(); toast(`🎯 Calibrada: campo de visión ≈ ${Math.abs(1 / sx).toFixed(0)}° × ${Math.abs(1 / sy).toFixed(0)}°`, 'ok');
+    return true;
+  } catch (e) { toast('No se pudo calibrar: ' + e.message, 'err'); return false; }
+  finally { S.busy = false; setBusyUi(false); drawMap(); }
+}
+function calHint() {
+  $('calHint').textContent = S.calib ? `Campo de visión ≈ ${Math.abs(1 / S.calib.sx).toFixed(0)}° × ${Math.abs(1 / S.calib.sy).toFixed(0)}°.` : 'La primera vez se calibra automáticamente.';
+}
+let scanAbort = false;
+function setBusyUi(on, txt = '') {
+  $('bCal').disabled = on; $('bLim').disabled = on; $('bScan').textContent = on && txt.startsWith('Escan') ? '⏹ Detener' : '🧭 Escanear panorámica';
+  $('bScan').disabled = on && !txt.startsWith('Escan');
+  $('scanTxt').textContent = txt; $('prog').classList.toggle('on', on);
+  if (!on) $('prog').firstElementChild.style.width = '0';
+}
+
+// ───────── Panorámica ─────────
+// Coordenadas de "escena": X = x_imagen − sx·pan (en anchos de imagen), Y = y_imagen − sy·tilt (en altos).
+// Un punto fijo del mundo tiene X, Y constantes aunque la cámara gire.
+function sceneBounds(c, R = S.safe || S.range) {
+  const xs = [-c.sx * R.pmin, -c.sx * R.pmax], ys = [-c.sy * R.tmin, -c.sy * R.tmax];
+  return { x0: Math.min(...xs), x1: Math.max(...xs) + 1, y0: Math.min(...ys), y1: Math.max(...ys) + 1 };
+}
+async function scan() {
+  if (S.busy) { scanAbort = true; return; }
+  if (!S.calib && !await calibrate()) return;
+  if (!S.safe) {
+    if (!confirm('Antes de escanear hay que medir hasta dónde puede girar la cámara sin chocar con paredes o marcos (unos minutos; si encuentra un obstáculo, la cámara se reiniciará para recalibrarse). ¿Medir ahora?')) return;
+    if (!await detectLimits()) return;
+  }
+  if (!confirm('La cámara recorrerá todo su giro haciendo fotos (unos 3-5 minutos) y luego volverá a donde está. ¿Empezar?')) return;
+  S.busy = true; scanAbort = false; setBusyUi(true, 'Escaneando…');
+  await refreshPos(); const home = { ...S.pos };
+  const before = await grab(256);            // para comprobar al final que la cámara no ha perdido la posición
+  const R = S.safe || S.range;              // límites reales medidos (obstáculos de la instalación)
+  const c = S.calib, b = sceneBounds(c, R);
+  const TW = 240, TH = Math.round(TW * c.h / c.w);              // tamaño de cada foto en la panorámica
+  const cv = document.createElement('canvas'); cv.width = Math.ceil((b.x1 - b.x0) * TW); cv.height = Math.ceil((b.y1 - b.y0) * TH);
+  const ctx = cv.getContext('2d'); ctx.fillStyle = '#111'; ctx.fillRect(0, 0, cv.width, cv.height);
+  const stepP = 0.8 / Math.abs(c.sx), stepT = 0.8 / Math.abs(c.sy);
+  const ps = [], ts = [];
+  for (let v = R.pmin; v < R.pmax; v += stepP) ps.push(Math.round(v)); ps.push(R.pmax);
+  for (let v = R.tmin; v < R.tmax; v += stepT) ts.push(Math.round(v)); ts.push(R.tmax);
+  const plan = []; ts.forEach((t, i) => (i % 2 ? [...ps].reverse() : ps).forEach(p => plan.push({ p, t })));
+  S.pano = { img: cv, meta: { TW, TH, x0: b.x0, y0: b.y0, sx: c.sx, sy: c.sy, partial: true } };
+  try {
+    for (let i = 0; i < plan.length && !scanAbort; i++) {
+      const { p, t } = plan[i];
+      $('scanTxt').textContent = `Foto ${i + 1} de ${plan.length}`; $('prog').firstElementChild.style.width = (100 * i / plan.length) + '%';
+      await moveAbs(p, t); await settle();
+      const bmp = await createImageBitmap(await snapshotBlob());
+      const X = -c.sx * p - b.x0, Y = -c.sy * t - b.y0;
+      ctx.drawImage(bmp, X * TW, Y * TH, TW, TH);
+      drawMap();
+    }
+    if (scanAbort) throw new Error('detenido');
+    S.pano.meta.partial = false; S.pano.meta.at = new Date().toISOString();
+    const blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.85));
+    await http('/api/panorama', { method: 'PUT', headers: { 'Content-Type': 'image/jpeg' }, body: blob });
+    await saveCalib();
+    toast('🧭 Panorámica lista: haz clic en el mapa para apuntar', 'ok');
+  } catch (e) {
+    toast(e.message === 'detenido' ? 'Escaneo detenido' : 'Error al escanear: ' + e.message, e.message === 'detenido' ? '' : 'err');
+  } finally {
+    await moveAbs(home.p, home.t);
+    try { await settle(); await checkDrift(before); } catch {}
+    S.busy = false; setBusyUi(false); drawMap();
+  }
+}
+const saveCalib = () => api('/api/calibration', { method: 'PUT', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ calib: S.calib, safe: S.safe, pano: S.pano && !S.pano.meta.partial ? S.pano.meta : null }) });
+
+// Reinicia la cámara y espera a que vuelva y termine su recorrido de arranque (que la recalibra).
+async function rebootAndWait(msg) {
+  $('scanTxt').textContent = msg || 'Reiniciando la cámara para recalibrarla…'; conn('warn', 'Reiniciando…');
+  await api('/api/form/reboot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+  await sleep(15000);
+  for (let i = 0; i < 40; i++) { try { const r = await http('/cam/config/ptz_pos.cgi'); if (r.ok) break; } catch {} await sleep(3000); }
+  await sleep(30000);                                   // recorrido de autocalibración al arrancar
+  loadVideo(); await refreshPos();
+}
+
+// Mide el rango de giro real: la cámara puede chocar con paredes o marcos antes de llegar a los límites
+// que anuncia su firmware, y al atascarse pierde pasos. Avanza en pasos cortos hacia cada lado midiendo
+// con la imagen si se mueve de verdad; donde deja de moverse, está el obstáculo.
+async function detectLimits() {
+  if (S.busy) return false;
+  if (!S.calib && !await calibrate()) return false;
+  S.busy = true; setBusyUi(true, 'Midiendo límites…');
+  const STEP = 8, MARGIN = 5, R = S.range, c = S.calib;
+  const found = { ...R }; let rebooted = false;
+  try {
+    await refreshPos(); const home = { ...S.pos };
+    const dirs = [['pmin', 'p', -1, 'giro izquierda'], ['pmax', 'p', 1, 'giro derecha'], ['tmin', 't', -1, 'inclinación ↑'], ['tmax', 't', 1, 'inclinación ↓']];
+    for (const [key, axis, sgn, label] of dirs) {
+      $('scanTxt').textContent = 'Límite: ' + label + '…';
+      await moveAbs(home.p, home.t, true); await settle();
+      let pos = axis === 'p' ? home.p : home.t, prev = await grab(256), stalled = false;
+      const end = R[key];
+      while (sgn < 0 ? pos > end : pos < end) {
+        const next = sgn < 0 ? Math.max(end, pos - STEP) : Math.min(end, pos + STEP), d = next - pos;
+        await moveAbs(axis === 'p' ? next : home.p, axis === 't' ? next : home.t, true); await settle();
+        const cur = await grab(256);
+        const s = axis === 'p' ? shift(prev, cur, Math.round(cur.w * .3), 4) : shift(prev, cur, 4, Math.round(cur.h * .4));
+        const moved = Math.abs(axis === 'p' ? s.dx / cur.w : s.dy / cur.h), expected = Math.abs((axis === 'p' ? c.sx : c.sy) * d);
+        if (s.err > 32) { found[key] = pos; break; }                   // imagen poco fiable: parar aquí por prudencia
+        if (moved < expected * 0.5) { found[key] = pos; stalled = true; break; }  // se ha atascado
+        pos = next; prev = cur;
+        if (pos === end) found[key] = end;
+      }
+      if (found[key] !== end) found[key] -= sgn * MARGIN;
+      if (stalled) { await rebootAndWait(`Obstáculo en ${label}: reiniciando la cámara para recalibrarla…`); rebooted = true; await refreshPos(); home.p = S.pos.p; home.t = S.pos.t; }
+    }
+    await moveAbs(home.p, home.t, true); await settle();
+    S.safe = found; await saveCalib();
+    toast(`📏 Rango útil: pan ${found.pmin}–${found.pmax}, tilt ${found.tmin}–${found.tmax}` + (rebooted ? ' (la cámara se reinició para recalibrarse)' : ''), 'ok');
+    return true;
+  } catch (e) { toast('No se pudieron medir los límites: ' + e.message, 'err'); return false; }
+  finally { S.busy = false; setBusyUi(false); drawMap(); }
+}
+
+// Compara la imagen de antes y después de un recorrido largo. Si no coinciden, la cámara ha perdido
+// pasos (no tiene sensores de posición) y sus coordenadas ya no son fiables: se recalibra al reiniciarse.
+async function checkDrift(before) {
+  const after = await grab(256), s = shift(before, after, Math.round(before.w * .45), Math.round(before.h * .3));
+  const off = Math.hypot(s.dx / before.w, s.dy / before.h);
+  if (off < 0.06) return;
+  if (confirm(`⚠ Al volver, la imagen no coincide con la de antes (desvío ≈ ${Math.round(off * 100)} %): la cámara ha perdido su posición.\n\nSe corrige reiniciándola (al arrancar recorre su giro y se recalibra; tarda alrededor de un minuto). ¿Reiniciar ahora?`)) {
+    try { await api('/api/form/reboot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); toast('Reiniciando la cámara para recalibrarla…', 'ok'); conn('warn', 'Reiniciando…'); setTimeout(loadVideo, 60000); }
+    catch (e) { toast('No se pudo reiniciar: ' + e.message, 'err'); }
+  }
+}
+$('bScan').onclick = scan;
+$('bCal').onclick = calibrate;
+$('bLim').onclick = () => { if (confirm('La cámara girará poco a poco hacia cada lado para encontrar paredes u obstáculos (unos minutos). Si choca con algo, se reiniciará para recalibrarse. ¿Empezar?')) detectLimits(); };
+
+// ───────── Mapa ─────────
+const map = $('map');
+let mapHover = null;
+function mapGeom() {
+  const c = S.pano?.meta || S.calib || { sx: -1 / 58, sy: -1 / 33 };   // valores aproximados si aún no hay calibración
+  const b = S.pano?.meta ? { x0: S.pano.meta.x0, y0: S.pano.meta.y0, x1: S.pano.meta.x0 + S.pano.img.width / S.pano.meta.TW, y1: S.pano.meta.y0 + S.pano.img.height / S.pano.meta.TH } : sceneBounds(c);
+  const W = map.clientWidth, aspect = (b.y1 - b.y0) / (b.x1 - b.x0) * (S.calib ? S.calib.h / S.calib.w : 9 / 16);
+  return { c, b, W, H: Math.max(90, Math.round(W * aspect)) };
+}
+function drawMap() {
+  const dpr = devicePixelRatio || 1, g = mapGeom(), { b, c } = g;
+  if (map.width !== g.W * dpr || map.height !== g.H * dpr) { map.width = g.W * dpr; map.height = g.H * dpr; map.style.height = g.H + 'px'; }
+  const x = map.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const css = getComputedStyle(document.documentElement), col = n => css.getPropertyValue(n).trim();
+  const toPx = (X, Y) => [(X - b.x0) / (b.x1 - b.x0) * g.W, (Y - b.y0) / (b.y1 - b.y0) * g.H];
+  x.clearRect(0, 0, g.W, g.H);
+  if (S.pano) x.drawImage(S.pano.img, 0, 0, g.W, g.H);
+  else {
+    x.strokeStyle = col('--line'); x.lineWidth = 1;
+    for (let i = 1; i < 12; i++) { x.beginPath(); x.moveTo(g.W * i / 12, 0); x.lineTo(g.W * i / 12, g.H); x.stroke(); }
+    for (let i = 1; i < 4; i++) { x.beginPath(); x.moveTo(0, g.H * i / 4); x.lineTo(g.W, g.H * i / 4); x.stroke(); }
+    x.fillStyle = col('--mut'); x.font = '12px system-ui'; x.textAlign = 'center';
+    x.fillText(S.calib ? 'Pulsa «Escanear panorámica» para ver el entorno' : 'Calibra o escanea para usar el mapa', g.W / 2, g.H / 2 + 4);
+  }
+  const rect = (p, t, stroke, fill, lw = 2) => {
+    const [ax, ay] = toPx(-c.sx * p, -c.sy * t), [bx, by] = toPx(-c.sx * p + 1, -c.sy * t + 1);
+    const l = Math.min(ax, bx), tp = Math.min(ay, by), w = Math.abs(bx - ax), h = Math.abs(by - ay);
+    if (fill) { x.fillStyle = fill; x.fillRect(l, tp, w, h); }
+    x.strokeStyle = stroke; x.lineWidth = lw; x.strokeRect(l + lw / 2, tp + lw / 2, w - lw, h - lw);
+  };
+  if (S.safe && (S.calib || S.pano)) {      // sombrea lo que queda fuera del alcance (obstáculos)
+    const [ax, ay] = toPx(Math.min(-c.sx * S.safe.pmin, -c.sx * S.safe.pmax), Math.min(-c.sy * S.safe.tmin, -c.sy * S.safe.tmax));
+    const [bx, by] = toPx(Math.max(-c.sx * S.safe.pmin, -c.sx * S.safe.pmax) + 1, Math.max(-c.sy * S.safe.tmin, -c.sy * S.safe.tmax) + 1);
+    x.fillStyle = 'rgba(0,0,0,.55)';
+    x.fillRect(0, 0, g.W, ay); x.fillRect(0, by, g.W, g.H - by); x.fillRect(0, ay, ax, by - ay); x.fillRect(bx, ay, g.W - bx, by - ay);
+  }
+  if (mapHover && !S.busy) rect(mapHover.p, mapHover.t, 'rgba(255,255,255,.7)', 'rgba(255,255,255,.08)', 1);
+  if (S.pos) rect(S.pos.p, S.pos.t, col('--acc'), 'rgba(255,122,26,.12)');
+  x.font = '600 11px system-ui'; x.textAlign = 'left';
+  S.presets.forEach((pr, i) => {
+    if (isNaN(pr.p)) return;
+    const [px, py] = toPx(-c.sx * pr.p + .5, -c.sy * pr.t + .5);
+    x.fillStyle = col('--acc'); x.beginPath(); x.arc(px, py, 5, 0, 7); x.fill();
+    x.lineWidth = 3; x.strokeStyle = 'rgba(0,0,0,.6)'; const lbl = (i < 9 ? i + 1 + ' ' : '') + pr.name;
+    x.strokeText(lbl, px + 8, py + 4); x.fillStyle = '#fff'; x.fillText(lbl, px + 8, py + 4);
+  });
+  $('mapHint').textContent = S.pano ? (S.pano.meta.partial ? 'escaneando…' : 'clic para apuntar') : '';
+}
+function mapTarget(ev) {
+  const g = mapGeom(), r = map.getBoundingClientRect();
+  const X = g.b.x0 + (ev.clientX - r.left) / r.width * (g.b.x1 - g.b.x0), Y = g.b.y0 + (ev.clientY - r.top) / r.height * (g.b.y1 - g.b.y0);
+  // El centro de la imagen (0,5) está en la escena en X = 0,5 − sx·pan  →  pan = (0,5 − X) / sx
+  return { p: clamp(Math.round((0.5 - X) / g.c.sx), S.range.pmin, S.range.pmax), t: clamp(Math.round((0.5 - Y) / g.c.sy), S.range.tmin, S.range.tmax) };
+}
+map.addEventListener('mousemove', ev => { if (S.calib || S.pano) { mapHover = mapTarget(ev); drawMap(); } });
+map.addEventListener('mouseleave', () => { mapHover = null; drawMap(); });
+map.addEventListener('click', ev => {
+  if (S.busy) return toast('Espera a que termine la operación en curso');
+  if (!S.calib && !S.pano) return toast('Primero calibra o escanea la panorámica');
+  const { p, t } = mapTarget(ev); moveAbs(p, t);
+});
+new ResizeObserver(() => drawMap()).observe(map.parentElement);
+
+// ───────── Sonido: WAV PCM continuo (mono, 16 bits, 11025 Hz) ─────────
 let actx, gain, abortCtl, nextT = 0;
 async function audioStart() {
-  actx = new AudioContext();
-  gain = actx.createGain(); gain.gain.value = +$('vol').value; gain.connect(actx.destination);
-  abortCtl = new AbortController();
-  $('alabel').textContent = 'Conectando…';
+  actx = new AudioContext(); gain = actx.createGain(); gain.gain.value = +$('vol').value; gain.connect(actx.destination);
+  abortCtl = new AbortController(); $('bAudio').textContent = '⏳ Sonido';
   try {
-    const r = await safeFetch(base() + '/audio.cgi', { signal: abortCtl.signal, cache: 'no-store' });
+    const r = await http('/cam/audio.cgi', { signal: abortCtl.signal });
     if (!r.ok) throw new Error('la cámara respondió ' + r.status);
     const reader = r.body.getReader();
-    let head = new Uint8Array(0), rate = 11025, channels = 1, inData = false, carry = null;
-    $('alabel').textContent = 'Activado';
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
+    let head = new Uint8Array(0), rate = 11025, ch = 1, inData = false, carry = null;
+    $('bAudio').textContent = '🔊 Sonido'; $('bAudio').classList.add('on');
+    for (;;) {
+      const { value, done } = await reader.read(); if (done) break;
       let bytes = value;
-      if (!inData) { // acumula hasta encontrar la cabecera WAV y el bloque "data"
+      if (!inData) {
         const m = new Uint8Array(head.length + bytes.length); m.set(head); m.set(bytes, head.length); head = m;
-        const dv = new DataView(head.buffer);
-        let i = -1;
-        for (let k = 12; k + 8 <= head.length; k++) if (head[k]===0x64 && head[k+1]===0x61 && head[k+2]===0x74 && head[k+3]===0x61) { i = k; break; }
+        let i = -1; for (let k = 12; k + 8 <= head.length; k++) if (head[k] === 0x64 && head[k + 1] === 0x61 && head[k + 2] === 0x74 && head[k + 3] === 0x61) { i = k; break; }
         if (i < 0) { if (head.length > 4096) throw new Error('formato de audio desconocido'); continue; }
-        if (head.length >= 28) { channels = dv.getUint16(22, true); rate = dv.getUint32(24, true); }
+        const dv = new DataView(head.buffer); if (head.length >= 28) { ch = dv.getUint16(22, true); rate = dv.getUint32(24, true); }
         bytes = head.subarray(i + 8); inData = true;
       }
-      if (carry) { const m = new Uint8Array(bytes.length + 1); m[0] = carry; m.set(bytes, 1); bytes = m; carry = null; }
+      if (carry !== null) { const m = new Uint8Array(bytes.length + 1); m[0] = carry; m.set(bytes, 1); bytes = m; carry = null; }
       if (bytes.length % 2) { carry = bytes[bytes.length - 1]; bytes = bytes.subarray(0, bytes.length - 1); }
-      const n = bytes.length / 2 / channels; if (!n) continue;
-      const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
-      const buf = actx.createBuffer(1, n, rate), ch = buf.getChannelData(0);
-      for (let s = 0; s < n; s++) ch[s] = dv.getInt16(s * 2 * channels, true) / 32768;
+      const n = bytes.length / 2 / ch; if (!n) continue;
+      const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.length), buf = actx.createBuffer(1, n, rate), out = buf.getChannelData(0);
+      for (let s = 0; s < n; s++) out[s] = dv.getInt16(s * 2 * ch, true) / 32768;
       const src = actx.createBufferSource(); src.buffer = buf; src.connect(gain);
-      const now = actx.currentTime;
-      if (nextT < now + 0.05 || nextT > now + 1.0) nextT = now + 0.25; // colchón ~0,25 s; corrige retrasos acumulados
+      const now = actx.currentTime; if (nextT < now + .05 || nextT > now + 1) nextT = now + .25;
       src.start(nextT); nextT += buf.duration;
     }
     throw new Error('la cámara cortó el audio');
-  } catch (e) {
-    if (e.name === 'AbortError') return;
-    status('Sonido: ' + e.message);
-    $('audio').checked = false; audioStop();
-  }
+  } catch (e) { if (e.name !== 'AbortError') { toast('Sonido: ' + e.message, 'err'); audioStop(); } }
 }
 function audioStop() {
-  abortCtl?.abort(); abortCtl = null;
-  actx?.close(); actx = null; nextT = 0;
-  $('alabel').textContent = 'Desactivado';
+  abortCtl?.abort(); abortCtl = null; actx?.close(); actx = null; nextT = 0;
+  $('bAudio').textContent = '🔇 Sonido'; $('bAudio').classList.remove('on');
 }
-$('audio').onchange = e => e.target.checked ? audioStart() : audioStop();
+$('bAudio').onclick = e => { e.stopPropagation(); actx ? audioStop() : audioStart(); };
 $('vol').oninput = e => { if (gain) gain.gain.value = +e.target.value; };
+$('vol').onclick = e => e.stopPropagation();
 
-document.querySelectorAll('.pad button').forEach(b => b.onclick = () => move(+b.dataset.m));
+// ───────── Teclado ─────────
 document.addEventListener('keydown', e => {
-  if (e.target.tagName === 'INPUT') return;
-  const map = { ArrowUp:1, ArrowLeft:3, ArrowRight:5, ArrowDown:7, Home:4 };
-  if (e.key in map) { e.preventDefault(); move(map[e.key]); }
+  if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName) || e.ctrlKey || e.altKey || e.metaKey) return;
+  const dir = { ArrowUp: 1, ArrowLeft: 3, ArrowRight: 5, ArrowDown: 7, Home: 4 }[e.key];
+  if (dir !== undefined) { e.preventDefault(); return move(dir); }
+  if (/^[1-9]$/.test(e.key) && S.presets[+e.key - 1]) return presetAct(S.presets[+e.key - 1].name, 'go');
+  const k = e.key.toLowerCase();
+  if (k === 's') $('bSnap').click(); else if (k === 'f') $('bFull').click(); else if (k === 'm') $('bAudio').click();
+});
+if (matchMedia('(min-width: 1200px)').matches) $('keysHint').style.display = '';
+
+// ───────── Pestañas ─────────
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('active', x === b));
+  document.querySelectorAll('.tabpane').forEach(p => p.classList.toggle('active', p.id === 'tab-' + b.dataset.tab));
+  if (b.dataset.tab === 'info') loadInfo();
+  if (b.dataset.tab === 'ajustes' && !$('tab-ajustes').children.length) buildSettings();
+  drawMap();
 });
 
-$('reload').onclick = loadVideo;
-$('full').onclick = () => $('vbox').requestFullscreen?.();
+// ───────── Ajustes ─────────
+const EU = { DSTStartMonth: '2', DSTStartWeek: '4', DSTStartDay: '0', DSTStartTime: '2', DSTEndMonth: '9', DSTEndWeek: '4', DSTEndDay: '0', DSTEndTime: '3' };
+const US = { DSTStartMonth: '2', DSTStartWeek: '1', DSTStartDay: '0', DSTStartTime: '2', DSTEndMonth: '10', DSTEndWeek: '0', DSTEndDay: '0', DSTEndTime: '2' };
+const ruleOf = f => Object.entries(EU).every(([k, v]) => f[k] === v) ? 'eu' : Object.entries(US).every(([k, v]) => f[k] === v) ? 'us' : 'custom';
 
-loadVideo();
-loadPresets();
-refreshPos();
+const SECTIONS = [
+  { key: 'image', ico: '🎨', title: 'Imagen', fields: [
+    { name: 'BrightnessControl', label: 'Brillo', type: 'level', opts: 'BrightnessControlSel' },
+    { name: 'ContrastControl', label: 'Contraste', type: 'level', opts: 'ContrastControlSel' },
+    { name: 'SaturationControl', label: 'Saturación', type: 'level', opts: 'SaturationControlSel' },
+    { name: 'Mirror', label: 'Voltear (cámara colgada boca abajo)', type: 'bit', bit: 1, recal: true },
+    { name: 'Mirror', label: 'Reflejar (efecto espejo)', type: 'bit', bit: 2, recal: true },
+    { name: 'AntiFlickerEnable', label: 'Antiparpadeo', sub: 'Reduce el parpadeo con luz fluorescente.', type: 'switch' } ] },
+  { key: 'video', ico: '🎞️', title: 'Calidad del vídeo', fields: [
+    { name: 'VideoResolution', label: 'Resolución', type: 'select', opts: 'VideoResolutionSel', recal: true },
+    { name: 'CompressionRate', label: 'Calidad', type: 'select', opts: 'CompressionRateSel' },
+    { name: 'FrameRate', label: 'Fotogramas por segundo', type: 'select', opts: 'FrameRateSel' } ],
+    note: 'Afecta al vídeo de este visor (MJPEG). Bajar la resolución o los fotogramas ahorra red Wi-Fi.' },
+  { key: 'night', ico: '🌙', title: 'Día / noche (infrarrojos)', fields: [
+    { name: 'DayNightMode', label: 'Modo', type: 'seg', choices: [['0', 'Auto'], ['2', 'Día'], ['3', 'Noche']] },
+    { name: 'LightSensorControl', label: 'Sensibilidad del sensor', type: 'select', opts: 'LightSensorSel', showIf: f => f.DayNightMode === '0' } ],
+    noteIf: f => ['1', '4'].includes(f.DayNightMode) ? 'La cámara usa un modo programado; se configura desde su web.' : '' },
+  { key: 'control', ico: '📷', title: 'Cámara', fields: [
+    { name: 'CameraName', label: 'Nombre', type: 'text', pattern: /^[A-Za-z0-9 _.-]{1,32}$/, err: 'Solo letras sin acentos, números, espacios, . _ -' },
+    { name: 'LEDControl', label: 'Luz LED', type: 'seg', choices: [['0', 'Normal'], ['1', 'Apagada']] },
+    { name: 'OSDEnable', label: 'Fecha y hora sobre el vídeo', type: 'switch' } ] },
+  { key: 'privacy', ico: '🙈', title: 'Privacidad', fields: [
+    { name: 'PrivacyEnable', label: 'Modo privacidad', sub: 'La cámara deja de emitir vídeo y sonido hasta que lo desactives.', type: 'switch' } ] },
+  { key: 'time', ico: '🕒', title: 'Fecha y hora', custom: true },
+  { key: 'motion', ico: '🏃', title: 'Detección de movimiento', fields: [
+    { name: 'MotionDetectionEnable', label: 'Activada', type: 'switch' },
+    { name: 'MotionDetectionSensitivity', label: 'Sensibilidad', type: 'range', min: 0, max: 100, showIf: f => f.MotionDetectionEnable === '1' } ],
+    note: 'Para recibir avisos hay que configurar el correo o el FTP en la web de la cámara.' },
+  { key: 'sound', ico: '🔔', title: 'Detección de sonido', fields: [
+    { name: 'SoundDetectionEnable', label: 'Activada', type: 'switch' },
+    { name: 'SoundDetectionDB', label: 'Nivel (dB)', type: 'select', opts: 'LevelSel', showIf: f => f.SoundDetectionEnable === '1' } ] },
+  { key: 'audio', ico: '🎙️', title: 'Micrófono', fields: [
+    { name: 'AudioEnable', label: 'Activado', type: 'switch' },
+    { name: 'AudioVolume', label: 'Volumen', type: 'select', opts: 'VolumeSel', showIf: f => f.AudioEnable === '1' } ] },
+  { key: 'reboot', ico: '🔄', title: 'Reiniciar la cámara', custom: true },
+];
+
+function el(tag, props = {}, ...kids) { const e = Object.assign(document.createElement(tag), props); e.append(...kids.filter(k => k != null)); return e; }
+function sw(checked, on) { const i = el('input', { type: 'checkbox', checked }); i.onchange = () => on(i.checked); return el('label', { className: 'switch' }, i, el('span')); }
+function seg(choices, val, on) {
+  const s = el('div', { className: 'seg' });
+  choices.forEach(([v, l]) => { const b = el('button', { textContent: l, className: v === val ? 'on' : '' }); b.onclick = () => { s.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); on(v); }; s.append(b); });
+  return s;
+}
+function sel(opts, val, on) {
+  const s = el('select'); opts.forEach(([v, l]) => s.append(el('option', { value: v, textContent: l })));
+  s.value = val; if (s.value !== val && val != null) s.prepend(el('option', { value: val, textContent: val })), s.value = val;
+  s.onchange = () => on(s.value); return s;
+}
+
+function buildSettings() {
+  const pane = $('tab-ajustes');
+  pane.append(el('div', { className: 'hint', textContent: 'Los cambios se guardan en la cámara. Abre una sección para ver sus ajustes.' }));
+  for (const sec of SECTIONS) {
+    const body = el('div', { className: 'secbody' }, el('span', { className: 'hint', textContent: 'Cargando…' }));
+    const d = el('details', { className: 'sec' }, el('summary', {}, el('span', { className: 'ico', textContent: sec.ico }), sec.title), body);
+    let loaded = false;
+    d.addEventListener('toggle', () => { if (d.open && !loaded) { loaded = true; renderSection(sec, body); } });
+    pane.append(d);
+  }
+}
+
+async function renderSection(sec, body) {
+  if (sec.key === 'reboot') return renderReboot(body);
+  let data;
+  try { data = await api('/api/form/' + sec.key); }
+  catch (e) { body.innerHTML = ''; body.append(el('span', { className: 'hint', textContent: 'No se pudo leer: ' + e.message })); return; }
+  if (sec.key === 'time') return renderTime(body, data);
+  const orig = { ...data.fields }, cur = { ...data.fields };
+  const st = el('span', { className: 'st' }), save = el('button', { className: 'primary', textContent: 'Guardar', disabled: true });
+  const changed = () => Object.keys(cur).filter(k => cur[k] !== orig[k]);
+  const draw = () => {
+    body.innerHTML = '';
+    for (const f of sec.fields) {
+      if (f.showIf && !f.showIf(cur)) continue;
+      const set = v => { cur[f.name] = String(v); save.disabled = !changed().length; st.textContent = changed().length ? 'Sin guardar' : ''; if (sec.fields.some(x => x.showIf)) draw(); };
+      let ctrl;
+      if (f.type === 'switch') ctrl = sw(cur[f.name] === '1', c => set(c ? 1 : 0));
+      else if (f.type === 'bit') ctrl = sw((+cur[f.name] & f.bit) !== 0, c => set(c ? (+cur[f.name] | f.bit) : (+cur[f.name] & ~f.bit)));
+      else if (f.type === 'seg') ctrl = seg(f.choices, cur[f.name], set);
+      else if (f.type === 'select') ctrl = sel(data.options[f.opts] || [], cur[f.name], set);
+      else if (f.type === 'level') {
+        // Opciones de la cámara: valores internos 1..128 con etiquetas −5..+5.
+        const o = [...(data.options[f.opts] || [])].sort((a, b) => +a[0] - +b[0]);
+        const idx = Math.max(0, o.findIndex(x => x[0] === cur[f.name]));
+        const r = el('input', { type: 'range', min: 0, max: o.length - 1, step: 1, value: idx }), out = el('output', { textContent: o[idx]?.[1] || '' });
+        r.oninput = () => { out.textContent = o[r.value][1]; set(o[r.value][0]); };
+        ctrl = el('div', { className: 'level' }, r, out);
+      } else if (f.type === 'range') {
+        const r = el('input', { type: 'range', min: f.min, max: f.max, value: cur[f.name] }), out = el('output', { textContent: cur[f.name] });
+        r.oninput = () => { out.textContent = r.value; set(r.value); };
+        ctrl = el('div', { className: 'level' }, r, out);
+      } else if (f.type === 'text') {
+        ctrl = el('input', { type: 'text', value: cur[f.name], maxLength: 32 }); ctrl.oninput = () => set(ctrl.value);
+      }
+      body.append(el('div', { className: 'field' + (f.type === 'text' ? ' wide' : '') }, el('label', { textContent: f.label }), ctrl, f.sub ? el('div', { className: 'sub', textContent: f.sub }) : null));
+    }
+    const note = sec.noteIf?.(cur) || sec.note;
+    if (note) body.append(el('div', { className: 'note', textContent: note }));
+    body.append(el('div', { className: 'secfoot' }, st, save));
+  };
+  save.onclick = async () => {
+    const ch = changed(), values = Object.fromEntries(ch.map(k => [k, cur[k]]));
+    for (const f of sec.fields) if (f.pattern && ch.includes(f.name) && !f.pattern.test(cur[f.name])) return toast(f.err, 'err');
+    if (sec.key === 'privacy' && cur.PrivacyEnable === '1' && !confirm('Con el modo privacidad la cámara deja de emitir vídeo. ¿Activarlo?')) return;
+    save.disabled = true; st.textContent = 'Guardando…';
+    try {
+      const r = await api('/api/form/' + sec.key, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values) });
+      if (!r.ok) throw new Error(r.message || 'la cámara no aplicó: ' + r.failed.join(', '));
+      Object.assign(orig, r.fields); Object.assign(cur, r.fields); draw(); st.textContent = '✓ Guardado';
+      toast(`✓ ${sec.title}: guardado`, 'ok');
+      if (sec.fields.some(f => f.recal && ch.includes(f.name))) invalidateCalibration();
+      if (sec.key === 'video' || sec.key === 'privacy') setTimeout(loadVideo, 1500);
+      if (sec.key === 'control' && ch.includes('CameraName')) $('camName').textContent = cur.CameraName;
+    } catch (e) { st.textContent = ''; save.disabled = false; toast('No se guardó: ' + e.message, 'err'); }
+  };
+  draw();
+}
+
+function renderTime(body, data) {
+  const f = { ...data.fields }, o = { ...data.fields };
+  const zones = data.options.TimeZoneSelect || [];
+  const zone = zones.find(([v]) => parseInt(v, 10) === parseInt(f.TimeZoneIndex, 10));
+  let rule = ruleOf(f);
+  const st = el('span', { className: 'st' }), save = el('button', { className: 'primary', textContent: 'Guardar' });
+  const clockNote = el('div', { className: 'note', textContent: 'Comprobando la hora de la cámara…' });
+  checkClock(clockNote);
+  const draw = () => {
+    body.innerHTML = '';
+    body.append(clockNote);
+    body.append(el('div', { className: 'field wide' }, el('label', { textContent: 'Zona horaria' }), sel(zones, zone ? zone[0] : f.TimeZoneIndex, v => { f.TimeZoneIndex = v; })));
+    body.append(el('div', { className: 'field' }, el('label', { textContent: 'Hora automática por Internet (NTP)' }), sw(f.DateTimeMode === '0', c => { f.DateTimeMode = c ? '0' : '1'; draw(); })));
+    if (f.DateTimeMode === '0') {
+      const srv = el('input', { type: 'text', value: f.TimeServerIPAddress, maxLength: 64 }); srv.oninput = () => f.TimeServerIPAddress = srv.value.trim();
+      body.append(el('div', { className: 'field wide' }, el('label', { textContent: 'Servidor NTP' }), srv,
+        el('div', { className: 'sub' }, 'Sugerencias: ', ...['pool.ntp.org', 'es.pool.ntp.org', 'time.google.com'].map(s => { const a = el('a', { href: '#', textContent: s }); a.onclick = e => { e.preventDefault(); srv.value = f.TimeServerIPAddress = s; }; return el('span', {}, a, ' '); }))));
+      body.append(el('div', { className: 'field' }, el('label', { textContent: 'Horario de verano' }), sw(f.DSTEnable === '1', c => { f.DSTEnable = c ? '1' : '0'; draw(); })));
+      if (f.DSTEnable === '1') {
+        body.append(el('div', { className: 'field' }, el('label', { textContent: 'Reglas' }),
+          sel([['eu', 'Unión Europea'], ['us', 'EE. UU. / Canadá'], ...(rule === 'custom' ? [['custom', 'Personalizadas (actuales)']] : [])], rule, v => { rule = v; })));
+      }
+    } else {
+      body.append(el('div', { className: 'note warn', textContent: 'Modo manual: por un fallo del firmware la cámara no admite años posteriores a 2020, así que mostrará 2020. Se recomienda la hora automática.' }));
+      const b = el('button', { textContent: 'Copiar la hora de este ordenador' });
+      b.onclick = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); f.Date = `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`; f.Time = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; st.textContent = 'Hora copiada: ' + f.Time; };
+      body.append(b);
+    }
+    body.append(el('div', { className: 'secfoot' }, st, save));
+  };
+  save.onclick = async () => {
+    const v = {};
+    for (const k of ['TimeZoneIndex', 'DateTimeMode', 'TimeServerIPAddress', 'DSTEnable', 'Date', 'Time']) if (f[k] !== o[k]) v[k] = f[k];
+    if (f.DSTEnable === '1' && rule !== 'custom') Object.assign(v, rule === 'eu' ? EU : US, { DSTOffset: '5' });
+    if (f.DateTimeMode === '0' && f.TimeServerIPAddress && !/^[A-Za-z0-9.-]{3,64}$/.test(f.TimeServerIPAddress)) return toast('Servidor NTP no válido', 'err');
+    save.disabled = true; st.textContent = 'Guardando…';
+    try {
+      const r = await api('/api/form/time', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) });
+      const failed = (r.failed || []).filter(k => !['Date', 'Time'].includes(k));   // la cámara reescribe fecha/hora
+      if (!r.ok && failed.length) throw new Error(r.message || 'no aplicó: ' + failed.join(', '));
+      Object.assign(o, r.fields); Object.assign(f, r.fields); st.textContent = '✓ Guardado'; toast('✓ Fecha y hora: guardado', 'ok');
+      setTimeout(() => checkClock(clockNote), 3000);
+    } catch (e) { st.textContent = ''; toast('No se guardó: ' + e.message, 'err'); }
+    finally { save.disabled = false; }
+  };
+  draw();
+}
+
+async function checkClock(note) {
+  try {
+    const i = await api('/api/info');
+    if (!i.camTime) throw new Error();
+    const diff = Math.round((new Date(i.camTime) - new Date(i.serverTime)) / 60000);
+    note.className = 'note' + (Math.abs(diff) >= 2 ? ' warn' : '');
+    note.textContent = `Hora de la cámara: ${i.camTime.replace('T', ' ')}. ` + (Math.abs(diff) < 2 ? '✓ Coincide con este ordenador.' : `⚠ Va ${Math.abs(diff)} min ${diff > 0 ? 'adelantada' : 'atrasada'} respecto a este ordenador.`);
+  } catch { note.textContent = 'No se pudo leer la hora de la cámara.'; }
+}
+
+function renderReboot(body) {
+  body.innerHTML = '';
+  const b = el('button', { className: 'danger', textContent: '🔄 Reiniciar ahora' });
+  b.onclick = async () => {
+    if (!confirm('¿Reiniciar la cámara? Tardará alrededor de un minuto en volver.')) return;
+    try {
+      await api('/api/form/reboot', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      toast('Reiniciando la cámara…', 'ok'); conn('warn', 'Reiniciando…'); setTimeout(loadVideo, 45000);
+    } catch (e) { toast('No se pudo reiniciar: ' + e.message, 'err'); }
+  };
+  body.append(el('div', { className: 'note', textContent: 'Útil si la cámara deja de responder. Los ajustes no se pierden.' }), el('div', { className: 'secfoot' }, b));
+}
+
+function invalidateCalibration() {
+  S.calib = null; S.pano = null; S.safe = null; snapDims = undefined; calHint(); drawMap();
+  api('/api/calibration', { method: 'DELETE' }).catch(() => {}); api('/api/panorama', { method: 'DELETE' }).catch(() => {});
+  toast('La orientación o la resolución cambió: vuelve a calibrar y escanear el mapa');
+}
+
+// ───────── Info ─────────
+async function loadInfo() {
+  const pane = $('tab-info');
+  try {
+    const { info, ptz, stream, camTime } = await api('/api/info');
+    const rows = [['Modelo', `${info.model} (hardware ${info.hw_version})`], ['Firmware', `${info.version} build ${info.build}`], ['Nombre', info.name],
+      ['Dirección IP', info.ipaddr], ['Máscara', info.netmask], ['Puerta de enlace', info.gateway], ['MAC', info.macaddr], ['Conexión', info.wireless === 'yes' ? 'Wi-Fi' : 'Cable'],
+      ['Movimiento', `pan ${ptz.pmin}–${ptz.pmax} · tilt ${ptz.tmin}–${ptz.tmax}`],
+      ['Rango útil medido', S.safe ? `pan ${S.safe.pmin}–${S.safe.pmax} · tilt ${S.safe.tmin}–${S.safe.tmax}` : 'sin medir (botón «Límites»)'], ['Vídeo', `${stream.videos} · ${stream.resolutions}`], ['Audio', `${stream.audios} · altavoz: ${info.speaker === 'yes' ? 'sí' : 'no'}`],
+      ['Hora de la cámara', camTime ? camTime.replace('T', ' ') : '—'],
+      ['Calibración', S.calib ? `${Math.abs(1 / S.calib.sx).toFixed(1)}° × ${Math.abs(1 / S.calib.sy).toFixed(1)}° (${S.calib.at?.slice(0, 10)})` : 'sin calibrar']];
+    const dl = el('dl', { className: 'info' }); rows.forEach(([k, v]) => dl.append(el('dt', { textContent: k }), el('dd', { textContent: v ?? '—' })));
+    pane.innerHTML = ''; pane.append(el('div', {}, el('h3', { textContent: 'Dispositivo' }), dl),
+      el('div', { className: 'note', innerHTML: 'Proyecto libre: <a href="https://github.com/DigiSoulBcn/dcs5030l-viewer" target="_blank" rel="noopener">github.com/DigiSoulBcn/dcs5030l-viewer</a>' }));
+  } catch (e) { pane.innerHTML = ''; pane.append(el('span', { className: 'hint', textContent: 'No se pudo leer: ' + e.message })); }
+}
+
+// ───────── Reloj y estado ─────────
+let clockOff = null;
+async function syncClock() {
+  try {
+    const i = await api('/api/info');
+    if (i.info?.name) $('camName').textContent = i.info.name;
+    if (i.ptz?.pmax) S.range = { pmin: +i.ptz.pmin, pmax: +i.ptz.pmax, tmin: +i.ptz.tmin, tmax: +i.ptz.tmax };
+    if (i.camTime) { clockOff = new Date(i.camTime) - Date.now(); const diff = Math.round((new Date(i.camTime) - new Date(i.serverTime)) / 60000); $('clockPill').title = Math.abs(diff) >= 2 ? `La cámara va ${Math.abs(diff)} min ${diff > 0 ? 'adelantada' : 'atrasada'}` : 'Hora de la cámara (coincide con este ordenador)'; $('clockPill').style.borderColor = Math.abs(diff) >= 2 ? 'var(--warn)' : ''; }
+  } catch { conn('err', 'Sin conexión'); }
+}
+setInterval(() => { if (clockOff !== null) $('clock').textContent = new Date(Date.now() + clockOff).toLocaleTimeString(); }, 1000);
+setInterval(syncClock, 5 * 60000);
+setInterval(() => { if (!S.busy && !document.hidden) refreshPos(); }, 15000);
+
+// ───────── Arranque ─────────
+(async () => {
+  loadVideo(); calHint();
+  await syncClock();
+  refreshPos(); loadPresets();
+  try {
+    const saved = await api('/api/calibration');
+    if (saved.calib) S.calib = saved.calib;
+    if (saved.safe) S.safe = saved.safe;
+    if (saved.pano && !saved.pano.partial) {
+      const r = await http('/api/panorama');
+      if (r.ok) { const img = await createImageBitmap(await r.blob()); S.pano = { img, meta: saved.pano }; }
+    }
+  } catch {}
+  calHint(); drawMap();
+})();
 })();
 </script>
 </body>

@@ -16,7 +16,30 @@ el 6/11/2026. Todo lo de este documento está comprobado contra esa cámara salv
 | Fallo del año | El desplegable de año de `time.htm` solo va de 2011 a 2020; con año ≥ 2021 la página envía `Date` vacío y la cámara lo rechaza ("formato de fecha aaaa-mm-dd"). | En modo NTP la fecha no se usa: enviar una fecha de 2020. |
 | Rutas inexistentes | Responden **403**, no 404. | Un 403 no implica falta de permisos. |
 | Permisos | Las cuentas de usuario normales pueden ver vídeo/audio; mover la cámara y `/config/*` requieren **admin**. | — |
-| Cabecera `Date` | La de la web de configuración es fija (2019), la de los CGI es la hora real de la cámara. | No usarla para medir la hora. |
+| Cabecera `Date` | La de la web de configuración es fija (2019), la de los CGI es la hora real de la cámara. | Leer la hora de los campos ocultos `f_year`, `f_month`… (con `name=`) de `stsdev.htm`. |
+| Pocas conexiones | La cámara rechaza conexiones si recibe varias a la vez (además de los streams de vídeo/audio). | Sin keep-alive, peticiones cortas en cola (máx. 2 simultáneas) y reintentos. |
+| Posición sin sensores | Los motores son paso a paso sin realimentación: `ptz_pos.cgi` devuelve la posición que el firmware *cree*. Recorridos largos hasta los topes pueden hacer perder pasos y desplazar todo el sistema de coordenadas (y las posiciones guardadas). | Evitar los extremos del recorrido. Al **reiniciar**, la cámara recorre su giro, se recalibra y vuelve a la posición de inicio (`customizedhome`). |
+| Fin de movimiento | No hay forma de saber cuándo termina un movimiento (la posición se actualiza al instante). | Comparar instantáneas sucesivas hasta que la imagen deje de cambiar. |
+
+### Campo de visión (medido)
+
+Con la cámara a 1280×720: **≈ 95° × 50°** (1 unidad de pan ≈ 1,05 % del ancho de imagen; 1 unidad de tilt ≈ 2 % del alto).
+Con la imagen volteada (`Mirror=3`, cámara colgada del techo) el eje vertical se invierte.
+
+### Valores de algunos ajustes
+
+| Campo | Valores |
+|---|---|
+| `DayNightMode` (`/setDayNightMode`) | 0 = automático (sensor de luz), 1 = manual, 2 = siempre día, 3 = siempre noche, 4 = programado |
+| `LightSensorControl` | 1 = baja, 3 = media, 5 = alta |
+| `Mirror` (`/setSystemStream`, image.htm) | bit 1 (valor 1) = voltear, bit 2 (valor 2) = reflejar |
+| `BrightnessControl`, `ContrastControl`, `SaturationControl` | 1, 14, 26, 39, 51, **64** (= 0), 77, 90, 103, 115, 128 → de −5 a +5 |
+| `LEDControl` (`/setSystemControl`) | 0 = normal, 1 = apagado |
+| `OSDEnable` | 1 = hora sobreimpresa, 0 = no |
+| `PrivacyEnable` (`/setSystemPrivacy`) | 1 = modo privacidad (sin vídeo) |
+| `VideoResolution` / `VideoResolution264` | 1 = 320×240, 2 = 640×480, 3 = 1280×720 |
+| `CompressionRate` (MJPEG) | 0 = muy alta calidad … 4 = muy baja |
+| `AudioEnable`, `AudioVolume` | 0/1; 0–100 en pasos de 10 |
 
 ## CGI estándar (Basic, realm NIPCA)
 
@@ -32,6 +55,7 @@ el 6/11/2026. Todo lo de este documento está comprobado contra esa cámara salv
 | `/config/ptz_pos.cgi` | GET | Posición actual `p=… t=…` | `clave=valor` |
 | `/config/ptz_preset_list.cgi` | GET | `presets=Nombre1,Nombre2` y `Nombre=p,t` | `clave=valor` |
 | `/config/ptz_preset.cgi?name=X&act=add\|del\|go` | GET | Guardar posición actual / borrar / ir | `clave=valor` |
+| `/config/ptz_move.cgi?p=P&t=T` | GET | **Movimiento absoluto** a pan P, tilt T (unidades ≈ grados). Responde al instante con la posición destino, antes de llegar | `clave=valor` |
 | `/pantiltcontrol.cgi` | POST | `PanSingleMoveDegree`, `TiltSingleMoveDegree`, `PanTiltSingleMove` (0–8: ↖ ↑ ↗ ← inicio → ↙ ↓ ↘) | — |
 
 ## Formularios de la web de configuración (Digest + Referer + SessionKey)

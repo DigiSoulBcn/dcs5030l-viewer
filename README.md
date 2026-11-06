@@ -17,11 +17,20 @@ Este proyecto la recupera con un pequeño servidor local y una página web que f
 
 ## Funciones
 
-- 📺 **Vídeo en directo** (MJPEG) en Chrome, Edge, Firefox…
-- 🔊 **Sonido** del micrófono de la cámara, con interruptor y volumen.
-- 🕹️ **Movimiento** (pan/tilt) con botones o con las flechas del teclado.
-- 📍 **Posiciones guardadas**: guardar, ir y borrar, almacenadas en la propia cámara.
-- 🔐 Gestiona por ti la autenticación de la cámara (Basic y Digest).
+- 📺 **Vídeo en directo** (MJPEG) en Chrome, Edge, Firefox…, con zoom digital, pantalla completa y reconexión automática.
+- 🎯 **Clic para apuntar**: pulsa en cualquier punto del vídeo y la cámara se centra en él. El campo de visión se
+  calibra solo, analizando la imagen (≈ 95° × 50° en la DCS-5030L).
+- 🧭 **Mapa panorámico**: la cámara recorre todo su giro haciendo fotos y compone una panorámica de su entorno.
+  Ves en ella hacia dónde mira la cámara y tus posiciones guardadas, y con un clic la apuntas a cualquier sitio.
+- 🕹️ **Movimiento** con botones o con las flechas del teclado.
+- 📍 **Posiciones guardadas** en la propia cámara (teclas <kbd>1</kbd>–<kbd>9</kbd> para ir a ellas).
+- 🔊 **Sonido** del micrófono de la cámara, con volumen.
+- 📷 **Instantáneas** en JPEG con un clic (o la tecla <kbd>S</kbd>).
+- ⚙️ **Panel de ajustes** sin Internet Explorer: imagen (brillo, contraste, saturación, voltear/reflejar), calidad
+  del vídeo, modo día/noche, LED, hora sobreimpresa, modo privacidad, **fecha y hora con horario de verano**
+  (sorteando el fallo del año 2020), detección de movimiento y de sonido, micrófono y reinicio. Cada cambio se
+  comprueba releyendo la cámara, porque su web responde "OK" aunque no guarde.
+- 🔐 Credenciales **cifradas** con la protección de datos de Windows (DPAPI).
 
 ## Requisitos
 
@@ -35,10 +44,25 @@ Este proyecto la recupera con un pequeño servidor local y una página web que f
 3. La primera vez te pide la IP:puerto de la cámara, el usuario y la contraseña, y comprueba que son correctos.
 4. Se abre el navegador en `http://localhost:8099`.
 
-Para cambiar los datos de acceso: `node servidor-camara.js --config`.
+Para cambiar los datos de acceso: `node servidor-camara.js --config`. Otras opciones: `--port N` (puerto local,
+por defecto 8099) y `--open` (abre el navegador).
 
-> ⚠️ Las credenciales se guardan **sin cifrar** en `camara.json`, junto al programa. El servidor solo
-> escucha en `localhost`, no es accesible desde la red. `camara.json` está excluido de Git.
+> 🔐 La contraseña se guarda en `camara.json` **cifrada con DPAPI**: solo tu usuario de Windows, en este equipo,
+> puede descifrarla. En otros sistemas operativos se guarda sin cifrar. El servidor solo escucha en `localhost`
+> y rechaza peticiones de otras webs. La calibración y la panorámica se guardan en la carpeta `datos/`.
+
+### Consejos
+
+- **Primera vez:** pulsa *Escanear panorámica* en la pestaña Control. El visor calibra el campo de visión,
+  **mide hasta dónde puede girar la cámara sin chocar** y recorre su giro haciendo fotos (unos minutos en total).
+  Después ya puedes apuntar con un clic en el mapa.
+- **Obstáculos:** si la cámara está junto a una pared o un marco, al girar puede chocar con ellos. El motor se
+  atasca, pierde pasos y la cámara deja de saber dónde está (las posiciones guardadas apuntan a otro sitio).
+  El botón *Límites* lo evita: gira poco a poco hacia cada lado comprobando con la imagen que se mueve de
+  verdad, y a partir de ahí el visor nunca sale de ese rango (tampoco con las flechas ni con las posiciones).
+- Si aun así la cámara se descoloca, **reiníciala** (Ajustes → Reiniciar): al arrancar recorre su giro y se
+  recalibra. El visor detecta el descoloque al terminar el escaneo y te lo ofrece.
+- Si cambias la orientación (voltear/reflejar) o la resolución, el visor te pedirá calibrar y escanear de nuevo.
 
 ## Compatibilidad
 
@@ -62,9 +86,9 @@ formularios de configuración.
 ## Ideas para el futuro
 
 - Ejecutable único (sin necesidad de instalar Node).
-- Credenciales cifradas.
-- Panel de configuración completo: fecha y hora (con horario de verano), imagen, detección de movimiento,
-  modo día/noche, tarjeta SD…
+- Grabación y detección de movimiento en el propio ordenador.
+- Varias cámaras en el mismo visor.
+- Ajustes que aún requieren la web de la cámara: Wi-Fi, correo, FTP, tarjeta SD, usuarios.
 
 ## Créditos
 

@@ -1,6 +1,9 @@
 # Credenciales de la cámara: NUNCA subirlas
 camara.json
 
+# Datos locales del visor (calibración y panorámica de TU cámara)
+datos/
+
 # Node
 node_modules/
 npm-debug.log*
