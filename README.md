@@ -22,7 +22,10 @@ Este proyecto la recupera con un pequeño servidor local y una página web que f
   calibra solo, analizando la imagen (≈ 95° × 50° en la DCS-5030L).
 - 🧭 **Mapa panorámico**: la cámara recorre todo su giro haciendo fotos y compone una panorámica de su entorno.
   Ves en ella hacia dónde mira la cámara y tus posiciones guardadas, y con un clic la apuntas a cualquier sitio.
-- 🕹️ **Movimiento** con botones o con las flechas del teclado.
+- 📏 **Detección de obstáculos**: mide hasta dónde puede girar la cámara sin chocar con paredes o marcos y no
+  sale nunca de ese rango, para que no pierda la posición.
+- 🕹️ **Movimiento** con botones o con las flechas del teclado (en la dirección correcta aunque la cámara esté
+  colgada boca abajo).
 - 📍 **Posiciones guardadas** en la propia cámara (teclas <kbd>1</kbd>–<kbd>9</kbd> para ir a ellas).
 - 🔊 **Sonido** del micrófono de la cámara, con volumen.
 - 📷 **Instantáneas** en JPEG con un clic (o la tecla <kbd>S</kbd>).
@@ -83,12 +86,33 @@ Referer obligatorio, detección de Internet Explorer, `SessionKey` por formulari
 guardan nada… Todo está documentado en **[api-dcs5030l.md](api-dcs5030l.md)**, junto con los CGI y los
 formularios de configuración.
 
-## Ideas para el futuro
+### Archivos
 
+| Archivo | Qué es |
+|---|---|
+| `iniciar-visor.bat` | Lanzador para Windows |
+| `servidor-camara.js` | Servidor local (Node.js, sin dependencias): autenticación, proxy, API de ajustes |
+| `visor-camara.html` | El visor (una sola página, sin dependencias) |
+| `api-dcs5030l.md` | Documentación de la API HTTP de la cámara y sus particularidades |
+| `camara.json`, `datos/` | Se crean al usarlo: credenciales y calibración/panorámica de *tu* cámara (no se suben a Git) |
+
+### Desarrollo
+
+`node servidor-camara.js --port 8097 --upstream http://127.0.0.1:8099/cam` arranca una segunda instancia que
+reenvía a otro servidor del visor ya autenticado, en lugar de a la cámara: sirve para probar cambios sin
+conocer ni volver a introducir la contraseña. Los ajustes que el visor puede tocar están en una lista blanca
+(`FORMS` en `servidor-camara.js`); los formularios de contraseñas, Wi-Fi y firmware quedan fuera a propósito.
+
+## Hoja de ruta
+
+- **Ajustes de red** (próximo paso): IP fija o DHCP, Wi-Fi (búsqueda de redes, clave), puertos, UPnP, DNS dinámico.
+  Con ellos el visor bastaría para poner en marcha una cámara **recién reseteada** sin Internet Explorer.
 - Ejecutable único (sin necesidad de instalar Node).
 - Grabación y detección de movimiento en el propio ordenador.
 - Varias cámaras en el mismo visor.
-- Ajustes que aún requieren la web de la cámara: Wi-Fi, correo, FTP, tarjeta SD, usuarios.
+- Resto de ajustes que aún requieren la web de la cámara: correo, FTP, tarjeta SD, usuarios.
+
+Historial de cambios en [CHANGELOG.md](CHANGELOG.md).
 
 ## Créditos
 
@@ -120,10 +144,13 @@ siempre que mantengas el aviso de copyright.
 
 ## English summary
 
-A modern browser-based viewer for the **D-Link DCS-5030L** pan/tilt IP camera that no longer needs
-Internet Explorer, ActiveX or Java. A small local Node.js server handles the camera's authentication
-(Basic + Digest) and proxies its video (MJPEG), audio (PCM), pan/tilt and preset controls to a web page
-that works in any modern browser.
+A modern browser-based viewer and control panel for the **D-Link DCS-5030L** pan/tilt IP camera that no
+longer needs Internet Explorer, ActiveX or Java. A small local Node.js server (no dependencies) handles the
+camera's authentication (Basic + Digest) and proxies its video (MJPEG), audio (PCM), pan/tilt and presets to a
+web page that works in any modern browser. Features: click-to-aim (field of view auto-calibrated from the
+image), a panoramic map of the surroundings, detection of physical obstacles so the motors never lose their
+position, a settings panel (image, video, day/night, LED, privacy, date & time with DST working around the
+firmware's year-2020 bug, motion/sound detection, microphone, reboot), snapshots and DPAPI-encrypted credentials.
 
 Run `iniciar-visor.bat` (or `node servidor-camara.js --open`), enter the camera address and admin
 credentials, and open `http://localhost:8099`. Tested on DCS-5030L hw A, firmware 1.06; other NIPCA-based

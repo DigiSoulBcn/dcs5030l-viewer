@@ -22,6 +22,7 @@ const crypto = require('crypto');
 const readline = require('readline');
 const { spawnSync } = require('child_process');
 
+const VERSION = '2.0.0';
 const DIR = __dirname;
 const CONFIG = path.join(DIR, 'camara.json');
 const DATA_DIR = path.join(DIR, 'datos');
@@ -416,7 +417,8 @@ if (require.main === module) (async () => {
   [camHost, camPort] = [cfg.host.split(':')[0], +(cfg.host.split(':')[1] || 80)];
   basicAuth = 'Basic ' + Buffer.from(cfg.user + ':' + cfg.pass).toString('base64');
   http.createServer(handle).listen(PORT, '127.0.0.1', () => {
-    console.log(`\nVisor listo en  http://localhost:${PORT}   (cámara ${UPSTREAM || cfg.host}, usuario ${cfg.user})`);
+    console.log(`\nDCS-5030L Viewer ${VERSION} · https://github.com/DigiSoulBcn/dcs5030l-viewer`);
+    console.log(`Visor listo en  http://localhost:${PORT}   (cámara ${UPSTREAM || cfg.host}, usuario ${cfg.user})`);
     console.log('Deja esta ventana abierta mientras uses el visor. Ctrl+C para cerrar.\n');
     if (process.argv.includes('--open')) require('child_process').exec(`start "" http://localhost:${PORT}`);
   }).on('error', e => {
