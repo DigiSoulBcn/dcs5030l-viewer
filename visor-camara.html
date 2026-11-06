@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Visor DCS-5030L</title>
+<style>
+  :root { --bg:#16181c; --panel:#22252b; --btn:#2f333b; --btnh:#3d424c; --txt:#e6e8eb; --mut:#9aa0a8; --acc:#ff7a1a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:14px/1.4 system-ui,Segoe UI,sans-serif; }
+  header { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:10px 16px; background:var(--panel); }
+  header h1 { font-size:16px; margin:0 12px 0 0; }
+  header input { background:var(--bg); color:var(--txt); border:1px solid #444; border-radius:6px; padding:5px 8px; width:170px; }
+  button, select { background:var(--btn); color:var(--txt); border:1px solid #444; border-radius:6px; padding:6px 10px; cursor:pointer; font:inherit; }
+  button:hover { background:var(--btnh); }
+  main { display:flex; flex-wrap:wrap; gap:16px; padding:16px; }
+  .video { flex:1 1 640px; min-width:0; background:#000; border-radius:8px; overflow:hidden; position:relative; aspect-ratio:16/9; }
+  .video img { width:100%; height:100%; object-fit:contain; display:block; }
+  .video .msg { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:20px; color:var(--mut); }
+  aside { flex:0 0 240px; display:flex; flex-direction:column; gap:14px; }
+  .card { background:var(--panel); border-radius:8px; padding:12px; }
+  .card h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--mut); margin:0 0 10px; }
+  .pad { display:grid; grid-template-columns:repeat(3,56px); grid-template-rows:repeat(3,56px); gap:6px; justify-content:center; }
+  .pad button { font-size:20px; padding:0; }
+  .pad .home { color:var(--acc); }
+  .row { display:flex; gap:8px; align-items:center; margin-top:8px; }
+  .row label { flex:1; color:var(--mut); }
+  #status { font-size:12px; color:var(--mut); min-height:1.4em; }
+  .hint { font-size:12px; color:var(--mut); }
+  header input, aside input:not([type]) { background:var(--bg); color:var(--txt); border:1px solid #444; border-radius:6px; padding:6px 8px; font:inherit; }
+  .presets { display:flex; flex-direction:column; gap:6px; }
+  .preset { display:flex; gap:6px; }
+  .preset .go { flex:1; text-align:left; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .preset .del { padding:6px 9px; color:#e66; }
+  .switch { position:relative; width:44px; height:24px; flex:0 0 44px; }
+  .switch input { opacity:0; width:0; height:0; }
+  .slider { position:absolute; inset:0; background:#555; border-radius:24px; cursor:pointer; transition:.2s; }
+  .slider::before { content:""; position:absolute; width:18px; height:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.2s; }
+  .switch input:checked + .slider { background:var(--acc); }
+  .switch input:checked + .slider::before { transform:translateX(20px); }
+  @media (max-width:700px) { aside { flex:1 1 100%; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>📷 DCS-5030L</h1>
+  <button id="reload">Recargar vídeo</button>
+  <button id="full">Pantalla completa</button>
+</header>
+<main>
+  <div class="video" id="vbox">
+    <img id="vid" alt="">
+    <div class="msg" id="vmsg">Cargando vídeo…</div>
+  </div>
+  <aside>
+    <div class="card">
+      <h2>Movimiento</h2>
+      <div class="pad">
+        <button data-m="0">↖</button><button data-m="1">↑</button><button data-m="2">↗</button>
+        <button data-m="3">←</button><button data-m="4" class="home" title="Posición inicial">⌂</button><button data-m="5">→</button>
+        <button data-m="6">↙</button><button data-m="7">↓</button><button data-m="8">↘</button>
+      </div>
+      <div class="row"><label for="step">Paso (grados)</label>
+        <select id="step"><option>1</option><option>3</option><option selected>5</option><option>10</option><option>20</option><option>45</option></select></div>
+      <div class="hint">También con las flechas del teclado (Inicio = posición inicial).</div>
+    </div>
+    <div class="card">
+      <h2>Posiciones guardadas</h2>
+      <div id="presets" class="presets"><div class="hint">Cargando…</div></div>
+      <div class="row">
+        <input id="pname" maxlength="20" placeholder="Nombre (p. ej. Patio)" style="flex:1;min-width:0">
+        <button id="psave" title="Guarda la posición actual con este nombre">Guardar</button>
+      </div>
+      <div class="hint">Guarda donde está apuntando ahora la cámara. Posición actual: <span id="pos">—</span></div>
+    </div>
+    <div class="card">
+      <h2>Sonido</h2>
+      <div class="row">
+        <label class="switch"><input type="checkbox" id="audio"><span class="slider"></span></label>
+        <label for="audio" id="alabel" style="flex:1;color:var(--txt)">Desactivado</label>
+      </div>
+      <div class="row"><label for="vol">Volumen</label><input type="range" id="vol" min="0" max="3" step="0.1" value="1" style="flex:2"></div>
+    </div>
+    <div class="card"><h2>Estado</h2><div id="status">—</div></div>
+  </aside>
+</main>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+// El servidor local (servidor-camara.js) reenvía /cam/* a la cámara con las credenciales.
+const base = () => location.origin + '/cam';
+
+// Algunas extensiones del navegador sustituyen window.fetch por su propia versión y rompen
+// los streams (p. ej. el audio). Usamos la fetch original de un iframe vacío propio.
+const netFetch = (() => {
+  try {
+    const f = document.createElement('iframe');
+    f.style.display = 'none';
+    document.documentElement.appendChild(f);
+    const nf = f.contentWindow.fetch;
+    if (typeof nf === 'function') return (url, opts) => nf.call(f.contentWindow, url, opts);
+  } catch {}
+  return (url, opts) => window.fetch(url, opts);
+})();
+async function safeFetch(url, opts) {
+  const r = await netFetch(url, opts);
+  if (!r) throw new Error('una extensión del navegador está bloqueando la petición; prueba en otro navegador o en una ventana privada');
+  return r;
+}
+
+function status(t) { $('status').textContent = new Date().toLocaleTimeString() + ' · ' + t; }
+
+function loadVideo() {
+  $('vmsg').style.display = 'flex';
+  $('vmsg').textContent = 'Cargando vídeo…';
+  $('vid').src = base() + '/video/mjpg.cgi?t=' + Date.now();
+}
+$('vid').onload = () => { $('vmsg').style.display = 'none'; status('Vídeo conectado'); };
+$('vid').onerror = () => {
+  $('vmsg').style.display = 'flex';
+  $('vmsg').innerHTML = location.protocol === 'file:'
+    ? 'Abre el visor desde <b>http://localhost:8099</b> (con servidor-camara.js en marcha), no con doble clic.'
+    : 'No se pudo cargar el vídeo. Comprueba la ventana del servidor: si la contraseña es incorrecta, reinícialo con <b>--config</b>.';
+  status('Error de vídeo');
+};
+
+async function send(path, params) {
+  try {
+    const r = await safeFetch(base() + path, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(params) });
+    const t = (await r.text()).trim().slice(0, 80);
+    if (!r.ok) status('La cámara respondió ' + r.status + (t ? ': ' + t : ''));
+    else if (t) status($('status').textContent.split(' · ').pop() + ' → ' + t);
+  } catch (e) { status('Error: ' + e.message); }
+}
+
+const names = ['↖','↑','↗','←','inicio','→','↙','↓','↘'];
+function move(m) {
+  const s = $('step').value;
+  send('/pantiltcontrol.cgi', { PanSingleMoveDegree: s, TiltSingleMoveDegree: s, PanTiltSingleMove: m });
+  status('Mover ' + names[m] + (m == 4 ? '' : ' ' + s + '°'));
+  refreshPos(1500);
+}
+
+// ---------- Posición actual ----------
+// La cámara responde en formato "clave=valor" por líneas.
+const parseInf = t => Object.fromEntries(t.split(/\r?\n/).filter(l => l.includes('=')).map(l => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim()]));
+async function cam(path) {
+  const r = await safeFetch(base() + path, { cache: 'no-store' });
+  const t = await r.text();
+  if (!r.ok) throw new Error('la cámara respondió ' + r.status);
+  return parseInf(t);
+}
+let posTimer;
+function refreshPos(delay = 0) {
+  clearTimeout(posTimer);
+  posTimer = setTimeout(async () => {
+    try { const p = await cam('/config/ptz_pos.cgi'); $('pos').textContent = `${p.p}, ${p.t}`; } catch { $('pos').textContent = '?'; }
+  }, delay);
+}
+
+// ---------- Posiciones guardadas (se almacenan en la propia cámara) ----------
+async function loadPresets() {
+  const box = $('presets');
+  try {
+    const d = await cam('/config/ptz_preset_list.cgi');
+    const list = (d.presets || '').split(',').map(s => s.trim()).filter(Boolean);
+    box.innerHTML = '';
+    if (!list.length) { box.innerHTML = '<div class="hint">No hay posiciones guardadas.</div>'; return; }
+    for (const name of list) {
+      const row = document.createElement('div'); row.className = 'preset';
+      const go = document.createElement('button'); go.className = 'go'; go.textContent = name; go.title = 'Ir a ' + name + (d[name] ? ' (' + d[name] + ')' : '');
+      go.onclick = () => presetAct(name, 'go');
+      const del = document.createElement('button'); del.className = 'del'; del.textContent = '✕'; del.title = 'Borrar ' + name;
+      del.onclick = () => { if (confirm(`¿Borrar la posición "${name}"?`)) presetAct(name, 'del'); };
+      row.append(go, del); box.appendChild(row);
+    }
+  } catch (e) { box.innerHTML = '<div class="hint">No se pudieron leer: ' + e.message + '</div>'; }
+}
+async function presetAct(name, act) {
+  try {
+    await cam(`/config/ptz_preset.cgi?name=${encodeURIComponent(name)}&act=${act}`);
+    status({ go: 'Yendo a ', add: 'Guardada ', del: 'Borrada ' }[act] + '"' + name + '"');
+    if (act === 'go') refreshPos(2500); else loadPresets();
+  } catch (e) { status('Error con "' + name + '": ' + e.message); }
+}
+$('psave').onclick = () => {
+  const name = $('pname').value.trim();
+  if (!/^[A-Za-z0-9_-]{1,20}$/.test(name)) { status('Nombre no válido: usa letras sin acentos, números, - o _ (sin espacios)'); $('pname').focus(); return; }
+  const exists = [...document.querySelectorAll('.preset .go')].some(b => b.textContent === name);
+  if (exists && !confirm(`"${name}" ya existe. ¿Sustituirla por la posición actual?`)) return;
+  presetAct(name, 'add');
+  $('pname').value = '';
+};
+$('pname').addEventListener('keydown', e => { if (e.key === 'Enter') $('psave').click(); });
+
+// ---------- Sonido: la cámara emite WAV PCM continuo (mono, 16 bits, 11025 Hz) ----------
+let actx, gain, abortCtl, nextT = 0;
+async function audioStart() {
+  actx = new AudioContext();
+  gain = actx.createGain(); gain.gain.value = +$('vol').value; gain.connect(actx.destination);
+  abortCtl = new AbortController();
+  $('alabel').textContent = 'Conectando…';
+  try {
+    const r = await safeFetch(base() + '/audio.cgi', { signal: abortCtl.signal, cache: 'no-store' });
+    if (!r.ok) throw new Error('la cámara respondió ' + r.status);
+    const reader = r.body.getReader();
+    let head = new Uint8Array(0), rate = 11025, channels = 1, inData = false, carry = null;
+    $('alabel').textContent = 'Activado';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      let bytes = value;
+      if (!inData) { // acumula hasta encontrar la cabecera WAV y el bloque "data"
+        const m = new Uint8Array(head.length + bytes.length); m.set(head); m.set(bytes, head.length); head = m;
+        const dv = new DataView(head.buffer);
+        let i = -1;
+        for (let k = 12; k + 8 <= head.length; k++) if (head[k]===0x64 && head[k+1]===0x61 && head[k+2]===0x74 && head[k+3]===0x61) { i = k; break; }
+        if (i < 0) { if (head.length > 4096) throw new Error('formato de audio desconocido'); continue; }
+        if (head.length >= 28) { channels = dv.getUint16(22, true); rate = dv.getUint32(24, true); }
+        bytes = head.subarray(i + 8); inData = true;
+      }
+      if (carry) { const m = new Uint8Array(bytes.length + 1); m[0] = carry; m.set(bytes, 1); bytes = m; carry = null; }
+      if (bytes.length % 2) { carry = bytes[bytes.length - 1]; bytes = bytes.subarray(0, bytes.length - 1); }
+      const n = bytes.length / 2 / channels; if (!n) continue;
+      const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.length);
+      const buf = actx.createBuffer(1, n, rate), ch = buf.getChannelData(0);
+      for (let s = 0; s < n; s++) ch[s] = dv.getInt16(s * 2 * channels, true) / 32768;
+      const src = actx.createBufferSource(); src.buffer = buf; src.connect(gain);
+      const now = actx.currentTime;
+      if (nextT < now + 0.05 || nextT > now + 1.0) nextT = now + 0.25; // colchón ~0,25 s; corrige retrasos acumulados
+      src.start(nextT); nextT += buf.duration;
+    }
+    throw new Error('la cámara cortó el audio');
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    status('Sonido: ' + e.message);
+    $('audio').checked = false; audioStop();
+  }
+}
+function audioStop() {
+  abortCtl?.abort(); abortCtl = null;
+  actx?.close(); actx = null; nextT = 0;
+  $('alabel').textContent = 'Desactivado';
+}
+$('audio').onchange = e => e.target.checked ? audioStart() : audioStop();
+$('vol').oninput = e => { if (gain) gain.gain.value = +e.target.value; };
+
+document.querySelectorAll('.pad button').forEach(b => b.onclick = () => move(+b.dataset.m));
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  const map = { ArrowUp:1, ArrowLeft:3, ArrowRight:5, ArrowDown:7, Home:4 };
+  if (e.key in map) { e.preventDefault(); move(map[e.key]); }
+});
+
+$('reload').onclick = loadVideo;
+$('full').onclick = () => $('vbox').requestFullscreen?.();
+
+loadVideo();
+loadPresets();
+refreshPos();
+})();
+</script>
+</body>
+</html>

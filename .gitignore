@@ -1,0 +1,11 @@
+# Credenciales de la cámara: NUNCA subirlas
+camara.json
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store
