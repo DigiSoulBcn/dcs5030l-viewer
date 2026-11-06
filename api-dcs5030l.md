@@ -32,7 +32,7 @@ Con la imagen volteada (`Mirror=3`, cámara colgada del techo) el eje vertical s
 |---|---|
 | `DayNightMode` (`/setDayNightMode`) | 0 = automático (sensor de luz), 1 = manual, 2 = siempre día, 3 = siempre noche, 4 = programado |
 | `LightSensorControl` | 1 = baja, 3 = media, 5 = alta |
-| `Mirror` (`/setSystemStream`, image.htm) | bit 1 (valor 1) = voltear, bit 2 (valor 2) = reflejar |
+| `Mirror` (`/setSystemStream`, image.htm) | bit 1 (valor 1) = reflejar (espejo), bit 2 (valor 2) = voltear (boca abajo); comprobado en la cámara |
 | `BrightnessControl`, `ContrastControl`, `SaturationControl` | 1, 14, 26, 39, 51, **64** (= 0), 77, 90, 103, 115, 128 → de −5 a +5 |
 | `LEDControl` (`/setSystemControl`) | 0 = normal, 1 = apagado |
 | `OSDEnable` | 1 = hora sobreimpresa, 0 = no |
